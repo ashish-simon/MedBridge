@@ -1,79 +1,92 @@
-# MediKiosk — Project Skeleton
+# MediKiosk — Multimodal Clinical Intake & Intelligence Platform
 
-This is the shared starting point for all four module teams. Read this
-before you start prompting Antigravity (or any AI tool) for your module.
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fashish-simon%2FMedikiosk)
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/ashish-simon/Medikiosk)
 
-## What's already built for you
+> **Patient-Facing Kiosk & Physician Dashboard for High-Density Indian Hospital OPDs**  
+> Developed for Ministry of Ayush / All India Institute of Ayurveda (AIIA).
 
-- `backend/main.py` — the FastAPI app that wires all four modules together.
-  You should not need to edit this file.
-- `backend/common/session.py` — generates a stand-in `patient_id` for every
-  kiosk session. This is what Module A/B/C use to tag their data until
-  Module D builds the real ABHA-verified ID.
-- `backend/module_a/router.py`, `module_b/router.py`, `module_c/router.py`,
-  `module_d/router.py` — one stub file per module, already wired into the
-  app under `/api/module-a/...`, `/api/module-b/...`, etc. Each stub
-  contains comments pointing to the exact PRD section to read and the
-  schema your output must match. **Replace the stub logic inside your own
-  file — don't touch anyone else's.**
-- `shared-schemas/` — the exact JSON shape each module must produce. Locked
-  after Day 1. If you think you need to change one, tell the whole team
-  first — a silent change here breaks everyone downstream of you.
-- `sample-data/` — realistic filled examples of Module A and B's output.
-  **Module C's team: build and test against these files today.** You do
-  not need to wait for Module A or B to be finished.
+---
 
-## How to run it
+## 🌐 Live Website Links & Deployment
 
+- **GitHub Repository**: [https://github.com/ashish-simon/Medikiosk](https://github.com/ashish-simon/Medikiosk)
+- **Live Vercel Deployment**: [https://medikiosk-app.vercel.app](https://medikiosk-app.vercel.app) *(or deploy instantly using the Vercel/Render buttons above)*
+
+---
+
+## 🚀 Key Modules & Architecture
+
+### Module A — Conversational Multimodal History Engine
+- **Indic Voice & Touch Interface**: Native integration with **Bhashini ASR & TTS** endpoints (Hindi, Telugu, English, Tamil, Kannada, Marathi, Bengali, Gujarati).
+- **SOCRATES & AYUSH Framework**: Structured history acquisition following SOCRATES (Site, Onset, Character, Radiation, Associations, Timing, Exacerbating/Relieving, Severity) and AYUSH Dashavidha Pariksha parameters.
+- **Phase 2 History Sequence**: Systematically collects past medical/surgical history, current medications, drug & food allergies, family history, and personal lifestyle habits.
+- **Deterministic Red-Flag Screening**: Immediate triage detection for cardiac, stroke, and severe respiratory symptoms.
+
+### Module B — Medical Document Digitization & Intelligence
+- **Multimodal OCR Pipeline**: Powered by **PaddleOCR** and **Gemini Vision** (`gemini-3.1-flash-lite`, `gemini-3.7-flash`).
+- **Batch Multi-File Upload**: Allows patients to upload multiple prescriptions, lab reports, and discharge summaries simultaneously.
+- **Chronological Timeline & Abnormal Highlighting**: Orders documents by date and flags out-of-range lab results as **`ABNORMAL`**.
+
+### Module C — Structured History Summary Generator & Interoperability Coding
+- **Standard Clinical Format**: Synthesizes conversational narration and OCR findings into:
+  $$\text{Chief complaint} \rightarrow \text{HPI} \rightarrow \text{Past medical/surgical} \rightarrow \text{Drug \& allergy} \rightarrow \text{Family} \rightarrow \text{Personal} \rightarrow \text{ROS} \rightarrow \text{Prior investigations summary}$$
+- **Dynamic Interoperability Coding**: Real-time mapping to **SNOMED-CT**, **ICD-11**, **LOINC**, and **NAMASTE** codes.
+- **Physician Dashboard Queue**: Logged-in doctors can search patients by ID or symptom, inspect full summaries, listen to Indic audio summaries, and perform inline amendments.
+
+### Module D & Auth Layer — Consent & Access Control
+- **Role-Based Authentication**: Secure password login and registration for **Doctor** and **Patient** roles (PBKDF2 SHA-256 password hashing).
+- **Bhashini Consent Autoplay**: Hands-free Indications consent audio playback on modal open.
+- **Patient Kiosk Ending Screen**: Reassuring intake completion view (`KioskComplete.jsx`) with summary review and **Start Kiosk for Next Patient** reset capability.
+
+---
+
+## 🛠️ Local Development & Running
+
+### Prerequisites
+- Python 3.10+
+- Node.js 18+
+
+### 1. Backend Setup (FastAPI)
 ```bash
 cd backend
 pip install -r requirements.txt
+cp .env.example .env   # Update with your Gemini & Bhashini API keys
 uvicorn main:app --reload --port 8000
 ```
+- Interactive API explorer available at: `http://localhost:8000/docs`
 
-Then open `http://localhost:8000/docs` — this gives you a clickable page
-to test any endpoint (yours or anyone else's) without needing the frontend
-built yet.
+### 2. Frontend Setup (React + Vite)
+```bash
+cd frontend
+npm install
+npm run dev
+```
+- Open browser at: `http://localhost:5173`
 
-## What to give Antigravity (or your AI tool of choice)
+---
 
-Don't paste the whole PRD. Paste only:
-1. Your module's section from the PRD (5.A, 5.B, 5.C, or 5.D)
-2. PRD Section 7 (the locked tech stack)
-3. Your schema file(s) from `shared-schemas/`
-4. This README section for your module (below)
-
-### Module A (Ashish + 1)
-Work inside `backend/module_a/`. Read the docstring at the top of
-`module_a/router.py` first — it lists the exact steps. Your output must
-match `shared-schemas/module-a-output.json`. As soon as you have real
-output working, update `sample-data/module-a-output-sample.json` with a
-real example so Module C can start testing against your actual data
-instead of the placeholder.
-
-### Module B (2 people)
-Work inside `backend/module_b/`. Fully independent — no dependency on any
-other module. Output must match `shared-schemas/module-b-output.json`.
-
-### Module C (2 people)
-Work inside `backend/module_c/`. **Start today** — point your code at
-`sample-data/module-a-output-sample.json` and
-`sample-data/module-b-output-sample.json` (or call
-`/api/module-a/sample-output` and `/api/module-b/sample-output` once the
-backend is running) instead of waiting for the real modules. Output must
-match `shared-schemas/module-c-output.json`.
-
-### Module D (build later)
-Work inside `backend/module_d/` once Module A/B/C are stable. Doesn't
-block or get blocked by anything else — see the docstring in
-`module_d/router.py`.
-
-## Git workflow
-
-- One shared repo, this exact folder structure.
-- Each person/pair works on their own branch: `module-a`, `module-b`,
-  `module-c`, `module-d`.
-- Only work inside your own `module_x/` folder — this is what keeps merge
-  conflicts near zero, since nobody's editing the same files.
-- Lead merges each branch into `main` at regular checkpoints, testing that
-  `uvicorn main:app --reload` still runs cleanly after each merge.
+## 📂 Repository Structure
+```
+├── backend/
+│   ├── main.py                  # FastAPI app entrypoint
+│   ├── common/                  # Session, Auth router, DB layers (SQLite / PostgreSQL)
+│   ├── module_a/                # Conversational LLM, Bhashini speech, SOCRATES state
+│   ├── module_b/                # PaddleOCR + Gemini Vision OCR document intelligence
+│   ├── module_c/                # Clinical summary synthesis & interoperability coding
+│   └── module_d/                # Consent, ABHA & FHIR stubs
+├── frontend/
+│   ├── src/
+│   │   ├── App.jsx              # Main App router
+│   │   ├── components/
+│   │   │   ├── AuthPage.jsx            # Password Login / Registration (Doctor & Patient)
+│   │   │   ├── Header.jsx              # App header with user profile & language switcher
+│   │   │   ├── ModuleDConsent.jsx      # Consent & ABHA verification
+│   │   │   ├── ModuleAIntake.jsx       # Conversational case intake UI
+│   │   │   ├── ModuleBDocuments.jsx    # Multi-file OCR document uploader
+│   │   │   ├── ModuleCPhysicianView.jsx# OPD Doctor Dashboard & Patient Queue
+│   │   │   └── KioskComplete.jsx       # Patient Kiosk completion & reset view
+├── vercel.json                  # Vercel deployment configuration
+├── render.yaml                  # Render.com web service configuration
+└── README.md
+```
