@@ -124,58 +124,70 @@ def get_service_id(task_type: str, language: str = "hi") -> str:
 
 def synthesize_speech(text: str, language: str = "hi", gender: str = "female") -> Optional[str]:
     """
-    Synthesizes speech from text using Bhashini TTS.
-    Returns base64-encoded WAV audio string, or None if failed.
+    Synthesizes speech from text using Bhashini TTS (with gTTS backup when API key is missing or offline).
+    Returns base64-encoded audio string (MP3/WAV).
     """
     if not text or not text.strip():
         return None
 
     user_id, api_key, _ = _get_credentials()
-    if not api_key:
-        logger.error("BHASHINI_API_KEY missing in environment.")
-        return None
+    if api_key:
+        service_id = get_service_id("tts", language)
 
-    service_id = get_service_id("tts", language)
-
-    headers = {
-        "Content-Type": "application/json",
-        "Authorization": api_key
-    }
-    if user_id:
-        headers["userID"] = user_id
-
-    tts_payload = {
-        "pipelineTasks": [
-            {
-                "taskType": "tts",
-                "config": {
-                    "language": {
-                        "sourceLanguage": language
-                    },
-                    "serviceId": service_id,
-                    "gender": gender
-                }
-            }
-        ],
-        "inputData": {
-            "input": [
-                {
-                    "source": text
-                }
-            ]
+        headers = {
+            "Content-Type": "application/json",
+            "Authorization": api_key
         }
-    }
+        if user_id:
+            headers["userID"] = user_id
 
+        tts_payload = {
+            "pipelineTasks": [
+                {
+                    "taskType": "tts",
+                    "config": {
+                        "language": {
+                            "sourceLanguage": language
+                        },
+                        "serviceId": service_id,
+                        "gender": gender
+                    }
+                }
+            ],
+            "inputData": {
+                "input": [
+                    {
+                        "source": text
+                    }
+                ]
+            }
+        }
+
+        try:
+            res = requests.post(BHASHINI_INFERENCE_URL, json=tts_payload, headers=headers, timeout=15)
+            if res.status_code == 200:
+                resp_json = res.json()
+                audio_b64 = resp_json["pipelineResponse"][0]["audio"][0]["audioContent"]
+                if audio_b64:
+                    return audio_b64
+            else:
+                logger.error(f"Bhashini TTS API error {res.status_code}: {res.text}")
+        except Exception as e:
+            logger.error(f"Bhashini TTS Exception: {e}")
+
+    # Fallback to gTTS engine to guarantee audio base64 output for frontend
     try:
-        res = requests.post(BHASHINI_INFERENCE_URL, json=tts_payload, headers=headers, timeout=15)
-        if res.status_code == 200:
-            resp_json = res.json()
-            audio_b64 = resp_json["pipelineResponse"][0]["audio"][0]["audioContent"]
-            return audio_b64
-        else:
-            logger.error(f"Bhashini TTS API error {res.status_code}: {res.text}")
-    except Exception as e:
-        logger.error(f"Bhashini TTS Exception: {e}")
+        import io, base64
+        from gtts import gTTS
+        lang_map = {"hi": "hi", "te": "te", "en": "en"}
+        target_lang = lang_map.get(language, "hi")
+        tts = gTTS(text=text, lang=target_lang)
+        fp = io.BytesIO()
+        tts.write_to_fp(fp)
+        fp.seek(0)
+        return base64.b64encode(fp.getvalue()).decode('utf-8')
+    except Exception as fallback_err:
+        logger.error(f"gTTS audio fallback error: {fallback_err}")
 
     return None
 

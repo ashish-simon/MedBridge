@@ -242,6 +242,71 @@ def init_db():
             abha_id VARCHAR(100),
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
+        """,
+        """
+        CREATE TABLE IF NOT EXISTS patients (
+            id VARCHAR(36) PRIMARY KEY,
+            abha_id VARCHAR(100),
+            name VARCHAR(200),
+            age INT,
+            gender VARCHAR(20),
+            contact_number VARCHAR(20),
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+        """,
+        """
+        CREATE TABLE IF NOT EXISTS encounters (
+            id VARCHAR(36) PRIMARY KEY,
+            patient_id VARCHAR(100),
+            facility_id VARCHAR(100) DEFAULT 'PHC-RURAL-01',
+            clinician_id VARCHAR(100),
+            encounter_type VARCHAR(50) DEFAULT 'Kiosk',
+            status VARCHAR(50) DEFAULT 'IN_PROGRESS',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+        """,
+        """
+        CREATE TABLE IF NOT EXISTS clinical_intakes (
+            id VARCHAR(36) PRIMARY KEY,
+            encounter_id VARCHAR(36),
+            raw_transcript TEXT,
+            structured_json TEXT,
+            ai_summary TEXT,
+            red_flags_detected BOOLEAN DEFAULT FALSE,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+        """,
+        """
+        CREATE TABLE IF NOT EXISTS documents (
+            id VARCHAR(36) PRIMARY KEY,
+            patient_id VARCHAR(100),
+            file_url TEXT,
+            ocr_extracted_text TEXT,
+            chronological_timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+        """,
+        """
+        CREATE TABLE IF NOT EXISTS referrals (
+            id VARCHAR(36) PRIMARY KEY,
+            patient_id VARCHAR(100),
+            origin_facility_id VARCHAR(100) DEFAULT 'PHC-RURAL-01',
+            destination_facility_id VARCHAR(100) DEFAULT 'DISTRICT-HOSP-01',
+            clinical_reason TEXT,
+            status VARCHAR(50) DEFAULT 'PENDING',
+            discharge_notes TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+        """,
+        """
+        CREATE TABLE IF NOT EXISTS high_risk_registry (
+            id VARCHAR(36) PRIMARY KEY,
+            patient_id VARCHAR(100),
+            condition_tag VARCHAR(100),
+            assigned_worker_id VARCHAR(100),
+            follow_up_due_date VARCHAR(20),
+            status VARCHAR(50) DEFAULT 'PENDING_VISIT',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
         """
     ]
     for statement in tables:

@@ -22,7 +22,7 @@ router = APIRouter()
 class RegisterRequest(BaseModel):
     username: str
     password: str
-    role: str  # 'doctor' or 'patient'
+    role: str  # 'patient', 'asha', 'doctor', 'admin'
     full_name: Optional[str] = ""
     abha_id: Optional[str] = ""
 
@@ -30,7 +30,7 @@ class RegisterRequest(BaseModel):
 class LoginRequest(BaseModel):
     username: str
     password: str
-    role: str  # 'doctor' or 'patient'
+    role: str  # 'patient', 'asha', 'doctor', 'admin'
 
 
 def hash_password(password: str) -> str:
@@ -46,20 +46,22 @@ def verify_password(password: str, password_hash: str) -> bool:
 
 @router.post("/register")
 def register_user(req: RegisterRequest):
-    """Registers a new doctor or patient user account."""
+    """Registers a new user account across multi-tier roles."""
     if not req.username.strip() or not req.password.strip():
         raise HTTPException(status_code=400, detail="Username and password are required.")
     
     role = req.role.lower().strip()
-    if role not in ["doctor", "patient"]:
-        raise HTTPException(status_code=400, detail="Role must be 'doctor' or 'patient'.")
+    valid_roles = ["patient", "asha", "doctor", "admin"]
+    if role not in valid_roles:
+        raise HTTPException(status_code=400, detail=f"Role must be one of: {', '.join(valid_roles)}.")
 
     existing = fetch_user_by_username(req.username.strip())
     if existing:
         raise HTTPException(status_code=400, detail="Username is already registered. Please choose another username or log in.")
 
-    # Generate user_id & patient_id
-    user_id = f"{'doc' if role == 'doctor' else 'pat'}-{uuid.uuid4().hex[:8]}"
+    # Generate user_id & patient_id prefix
+    prefix_map = {"patient": "pat", "asha": "asha", "doctor": "doc", "admin": "adm"}
+    user_id = f"{prefix_map.get(role, 'usr')}-{uuid.uuid4().hex[:8]}"
     pwd_hash = hash_password(req.password.strip())
     full_name = req.full_name.strip() or req.username.strip()
 
@@ -85,13 +87,13 @@ def register_user(req: RegisterRequest):
         "role": role,
         "full_name": full_name,
         "patient_id": user_id if role == "patient" else None,
-        "message": f"Successfully registered as {role.capitalize()}"
+        "message": f"Successfully registered as {role.upper()}"
     }
 
 
 @router.post("/login")
 def login_user(req: LoginRequest):
-    """Authenticates doctor or patient credentials."""
+    """Authenticates multi-tier role credentials."""
     username = req.username.strip()
     password = req.password.strip()
     target_role = req.role.lower().strip()
@@ -104,7 +106,7 @@ def login_user(req: LoginRequest):
         raise HTTPException(status_code=401, detail="Invalid username or password.")
 
     if user["role"] != target_role:
-        raise HTTPException(status_code=403, detail=f"Account is registered as '{user['role'].capitalize()}', not '{target_role.capitalize()}'. Please select the correct login tab.")
+        raise HTTPException(status_code=403, detail=f"Account is registered as '{user['role'].upper()}', not '{target_role.upper()}'. Please select the correct login tab.")
 
     patient_id = user["user_id"] if user["role"] == "patient" else None
     if patient_id:

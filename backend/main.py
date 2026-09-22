@@ -24,6 +24,7 @@ from module_a.router import router as module_a_router
 from module_b.router import router as module_b_router
 from module_c.router import router as module_c_router
 from module_d.router import router as module_d_router
+from v1.router import router as v1_router
 
 app = FastAPI(title="MediKiosk API", version="0.1.0")
 
@@ -56,6 +57,7 @@ def new_session():
 # Each module's endpoints live under their own prefix, so there's never a
 # naming collision between what different people build.
 app.include_router(auth_router, prefix="/api/auth", tags=["Auth & User Management"])
+app.include_router(v1_router, prefix="/api/v1", tags=["v1 — Integrated Platform Endpoints"])
 app.include_router(module_a_router, prefix="/api/module-a", tags=["Module A — Conversation"])
 app.include_router(module_b_router, prefix="/api/module-b", tags=["Module B — OCR"])
 app.include_router(module_c_router, prefix="/api/module-c", tags=["Module C — Summary"])

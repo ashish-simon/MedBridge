@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Shield, Volume2, VolumeX, RotateCcw, CheckCircle2, Lock, ArrowRight, Globe, ShieldCheck, AlertCircle } from 'lucide-react';
+import { stopGlobalAudio, playGlobalAudio, getGlobalPlayId } from '../utils/audioManager';
 
 export default function ModuleDConsent({ language, onLanguageChange, onStartIntake, sessionData }) {
   const patientId = sessionData?.patientId || 'patient-session';
@@ -22,7 +23,6 @@ export default function ModuleDConsent({ language, onLanguageChange, onStartInta
   // Audio Autoplay & Full Script TTS State
   const [audioPlaying, setAudioPlaying] = useState(false);
   const [audioFinished, setAudioFinished] = useState(false);
-  const audioRef = useRef(null);
 
   // Restricted to English, Hindi, Telugu only
   const languages = [
@@ -36,13 +36,13 @@ export default function ModuleDConsent({ language, onLanguageChange, onStartInta
     fetchConsentTerms();
   }, [language]);
 
-  // Autoplay full consent audio immediately on view load
+  // Autoplay full consent audio on language change
   useEffect(() => {
     playFullConsentAudio();
     return () => {
       stopAudio();
     };
-  }, [language, consentTerms]);
+  }, [language]);
 
   const fetchConsentTerms = async () => {
     try {
@@ -57,40 +57,41 @@ export default function ModuleDConsent({ language, onLanguageChange, onStartInta
   };
 
   const stopAudio = () => {
-    if (audioRef.current) {
-      try {
-        audioRef.current.pause();
-        audioRef.current.currentTime = 0;
-      } catch (e) {}
-    }
+    stopGlobalAudio();
     setAudioPlaying(false);
   };
 
   // Synthesizes ENTIRE consent text using Bhashini TTS
   const playFullConsentAudio = async () => {
     stopAudio();
+    const playId = getGlobalPlayId();
+
     setAudioPlaying(true);
     setAudioFinished(false);
 
     try {
       const res = await fetch(`/api/module-d/consent/audio?language=${language}`);
+      if (getGlobalPlayId() !== playId) return;
+
       if (res.ok) {
         const data = await res.json();
+        if (getGlobalPlayId() !== playId) return;
+
         if (data.audio_base64) {
-          const snd = new Audio(`data:audio/mp3;base64,${data.audio_base64}`);
-          audioRef.current = snd;
-
-          snd.onended = () => {
-            setAudioPlaying(false);
-            setAudioFinished(true);
-          };
-
-          snd.onerror = () => {
-            setAudioPlaying(false);
-            setAudioFinished(true);
-          };
-
-          await snd.play();
+          playGlobalAudio(
+            data.audio_base64,
+            () => {
+              if (getGlobalPlayId() === playId) {
+                setAudioPlaying(false);
+                setAudioFinished(true);
+              }
+            },
+            () => {
+              if (getGlobalPlayId() === playId) {
+                setAudioPlaying(false);
+              }
+            }
+          );
           return;
         }
       }
@@ -98,8 +99,10 @@ export default function ModuleDConsent({ language, onLanguageChange, onStartInta
       console.error("Consent Bhashini TTS fetch failed:", e);
     }
 
-    setAudioPlaying(false);
-    setAudioFinished(true);
+    if (getGlobalPlayId() === playId) {
+      setAudioPlaying(false);
+      setAudioFinished(true);
+    }
   };
 
   const handleToggleAudio = () => {
@@ -184,7 +187,10 @@ export default function ModuleDConsent({ language, onLanguageChange, onStartInta
           className="lang-select"
           style={{ padding: '10px 18px', fontSize: '15px', fontWeight: 700, borderRadius: '20px', minWidth: '180px' }}
           value={language}
-          onChange={(e) => onLanguageChange && onLanguageChange(e.target.value)}
+          onChange={(e) => {
+            stopAudio();
+            if (onLanguageChange) onLanguageChange(e.target.value);
+          }}
         >
           {languages.map(l => (
             <option key={l.code} value={l.code}>{l.label}</option>

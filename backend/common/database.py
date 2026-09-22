@@ -91,6 +91,77 @@ class ConsentRecordModel(Base):
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
 
+class PatientModel(Base):
+    __tablename__ = "patients"
+
+    id = Column(String(36), primary_key=True)
+    abha_id = Column(String(100), nullable=True)
+    name = Column(String(200), nullable=True)
+    age = Column(Integer, nullable=True)
+    gender = Column(String(20), nullable=True)
+    contact_number = Column(String(20), nullable=True)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+
+class EncounterModel(Base):
+    __tablename__ = "encounters"
+
+    id = Column(String(36), primary_key=True)
+    patient_id = Column(String(100), index=True)
+    facility_id = Column(String(100), default="PHC-RURAL-01")
+    clinician_id = Column(String(100), nullable=True)
+    encounter_type = Column(String(50), default="Kiosk")  # Walk-in, Kiosk, Teleconsultation
+    status = Column(String(50), default="IN_PROGRESS")  # IN_PROGRESS, LOCAL_DOCTOR_QUEUED, TELECONSULT_QUEUED, COMPLETED
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+
+class ClinicalIntakeModel(Base):
+    __tablename__ = "clinical_intakes"
+
+    id = Column(String(36), primary_key=True)
+    encounter_id = Column(String(36), index=True)
+    raw_transcript = Column(Text, nullable=True)
+    structured_json = Column(Text, nullable=True)
+    ai_summary = Column(Text, nullable=True)
+    red_flags_detected = Column(Boolean, default=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+
+class DocumentModel(Base):
+    __tablename__ = "documents"
+
+    id = Column(String(36), primary_key=True)
+    patient_id = Column(String(100), index=True)
+    file_url = Column(Text, nullable=True)
+    ocr_extracted_text = Column(Text, nullable=True)
+    chronological_timestamp = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+
+class ReferralModel(Base):
+    __tablename__ = "referrals"
+
+    id = Column(String(36), primary_key=True)
+    patient_id = Column(String(100), index=True)
+    origin_facility_id = Column(String(100), default="PHC-RURAL-01")
+    destination_facility_id = Column(String(100), default="DISTRICT-HOSP-01")
+    clinical_reason = Column(Text, nullable=True)
+    status = Column(String(50), default="PENDING")  # PENDING, IN_TRANSIT, ARRIVED, COMPLETED
+    discharge_notes = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+
+class HighRiskRegistryModel(Base):
+    __tablename__ = "high_risk_registry"
+
+    id = Column(String(36), primary_key=True)
+    patient_id = Column(String(100), index=True)
+    condition_tag = Column(String(100))  # e.g., High-Risk Pregnancy, Chronic HTN, Severe Anemia
+    assigned_worker_id = Column(String(100), index=True)
+    follow_up_due_date = Column(String(20))  # YYYY-MM-DD
+    status = Column(String(50), default="PENDING_VISIT")  # PENDING_VISIT, COMPLETED, OVERDUE
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+
 # ============================================================
 # DATABASE ENGINE SETUP & CONNECTION
 # ============================================================
