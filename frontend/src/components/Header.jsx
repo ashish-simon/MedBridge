@@ -11,11 +11,6 @@ export default function Header({
     { code: 'hi', label: 'हिंदी (Hindi)' },
     { code: 'te', label: 'తెలుగు (Telugu)' },
     { code: 'en', label: 'English' },
-    { code: 'ta', label: 'தமிழ் (Tamil)' },
-    { code: 'kn', label: 'ಕನ್ನಡ (Kannada)' },
-    { code: 'mr', label: 'मराठी (Marathi)' },
-    { code: 'bn', label: 'বাংলা (Bengali)' },
-    { code: 'gu', label: 'ગુજરાતી (Gujarati)' },
   ];
 
   return (
