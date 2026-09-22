@@ -1,0 +1,10 @@
+{
+  "patient_id": "string",
+  "abha_id": "string or null",
+  "consent_given": true,
+  "consent_timestamp": "ISO 8601 datetime string",
+  "consent_language": "string",
+  "consent_scope": ["history_capture", "document_sharing", "hospital_hie_link"],
+  "guardian_consent": false,
+  "session_cleared": false
+}

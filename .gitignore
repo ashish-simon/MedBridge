@@ -1,0 +1,36 @@
+# Python
+.venv/
+venv/
+env/
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.python-version
+.cache/
+
+# Node / React
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+
+# Database & Local Upload Storage
+*.db
+backend/medikiosk.db
+backend/module_b/storage/documents/*
+!backend/module_b/storage/documents/.gitkeep
+backend/module_b/storage/records/*
+!backend/module_b/storage/records/.gitkeep
+backend/module_b/storage/associations/*
+!backend/module_b/storage/associations/.gitkeep
+
+# Environment Secrets
+.env
+*.env
+backend/.env
+
+# IDE / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

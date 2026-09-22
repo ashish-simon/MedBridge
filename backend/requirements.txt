@@ -1,0 +1,8 @@
+fastapi
+uvicorn[standard]
+pydantic
+python-multipart
+requests
+google-generativeai
+paddleocr
+paddlepaddle

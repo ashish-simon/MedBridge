@@ -1,0 +1,34 @@
+{
+  "patient_id": "temp-9f3a1c2e8b7d",
+  "language": "hindi",
+  "chief_complaint": "chest pain since 2 days",
+  "hpi": {
+    "onset": "started suddenly two days ago while at work",
+    "character": "dull, pressing pain",
+    "duration": "comes and goes, lasts about 10 minutes each time",
+    "aggravating_factors": "gets worse with exertion, like climbing stairs",
+    "relieving_factors": "improves with rest",
+    "radiation": "spreads to the left arm"
+  },
+  "past_medical_history": ["hypertension diagnosed 3 years ago"],
+  "past_surgical_history": [],
+  "drug_allergy_history": ["allergic to penicillin"],
+  "family_history": ["father had a heart attack at age 58"],
+  "personal_history": ["non-smoker", "occasional alcohol use"],
+  "review_of_systems": ["mild shortness of breath on exertion", "no fever", "no cough"],
+  "ayush": {
+    "prakriti": "",
+    "vikriti": "",
+    "sara": "",
+    "samhanana": "",
+    "pramana": "",
+    "satmya": "",
+    "sattva": "",
+    "ahara_shakti": "",
+    "vyayama_shakti": "",
+    "vaya": "",
+    "ahara_vihara": ""
+  },
+  "red_flag_detected": true,
+  "red_flag_reason": "chest pain with exertional component, radiation to left arm, and family history of MI — possible cardiac origin"
+}

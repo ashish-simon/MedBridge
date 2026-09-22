@@ -1,0 +1,13 @@
+{
+  "document_id": "doc-0001",
+  "document_type": "lab_report",
+  "document_date": "2026-09-01",
+  "diagnoses": ["hypertension"],
+  "medications": [
+    { "name": "Amlodipine", "dosage": "5mg once daily" }
+  ],
+  "investigations": [
+    { "test_name": "Total Cholesterol", "value": "240 mg/dL", "reference_range": "<200 mg/dL", "flagged_abnormal": true },
+    { "test_name": "Fasting Blood Sugar", "value": "92 mg/dL", "reference_range": "70-100 mg/dL", "flagged_abnormal": false }
+  ]
+}

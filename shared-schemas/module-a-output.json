@@ -1,0 +1,34 @@
+{
+  "patient_id": "string",
+  "language": "string",
+  "chief_complaint": "string",
+  "hpi": {
+    "onset": "string",
+    "character": "string",
+    "duration": "string",
+    "aggravating_factors": "string",
+    "relieving_factors": "string",
+    "radiation": "string"
+  },
+  "past_medical_history": ["string"],
+  "past_surgical_history": ["string"],
+  "drug_allergy_history": ["string"],
+  "family_history": ["string"],
+  "personal_history": ["string"],
+  "review_of_systems": ["string"],
+  "ayush": {
+    "prakriti": "string",
+    "vikriti": "string",
+    "sara": "string",
+    "samhanana": "string",
+    "pramana": "string",
+    "satmya": "string",
+    "sattva": "string",
+    "ahara_shakti": "string",
+    "vyayama_shakti": "string",
+    "vaya": "string",
+    "ahara_vihara": "string"
+  },
+  "red_flag_detected": true,
+  "red_flag_reason": "string or null"
+}

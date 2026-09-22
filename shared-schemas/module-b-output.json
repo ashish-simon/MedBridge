@@ -1,0 +1,12 @@
+{
+  "document_id": "string",
+  "document_type": "prescription | lab_report | discharge_summary",
+  "document_date": "YYYY-MM-DD",
+  "diagnoses": ["string"],
+  "medications": [
+    { "name": "string", "dosage": "string" }
+  ],
+  "investigations": [
+    { "test_name": "string", "value": "string", "reference_range": "string", "flagged_abnormal": true }
+  ]
+}
