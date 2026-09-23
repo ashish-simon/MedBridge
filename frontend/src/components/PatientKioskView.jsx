@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { 
   Volume2, VolumeX, RotateCcw, Mic, MicOff, AlertTriangle, ShieldCheck, CheckCircle2, 
-  ArrowRight, FileText, Upload, Sparkles, PhoneCall, Stethoscope, ChevronRight, UserCheck, Clock, MapPin, Building
+  ArrowRight, FileText, Upload, Sparkles, PhoneCall, Stethoscope, ChevronRight, UserCheck, Clock, MapPin, Building, Video, Share2
 } from 'lucide-react';
 import ModuleDConsent from './ModuleDConsent';
 import ModuleBDocuments from './ModuleBDocuments';
@@ -583,58 +583,101 @@ export default function PatientKioskView({ patientId, language, onLanguageChange
         />
       )}
 
-      {/* STEP 4: CRYSTAL CLEAR ROUTING DECISION & QUEUE STATUS */}
+      {/* STEP 4: LIVE WAITING ROOM & IN-PERSON REFERRAL PASS SCREEN */}
       {currentStep === 4 && (
         <div className="card-panel" style={{ padding: '32px 24px' }}>
+          
+          {/* TOP HEADER SECTION */}
           <div style={{ textAlign: 'center', marginBottom: '28px' }}>
             <div style={{
               width: '72px',
               height: '72px',
               borderRadius: '50%',
-              background: isTeleconsultQueue ? '#fef3c7' : '#dcfce7',
-              color: isTeleconsultQueue ? '#b45309' : '#166534',
+              background: patientReferralToken ? '#e0f2fe' : isTeleconsultQueue ? '#fef3c7' : '#dcfce7',
+              color: patientReferralToken ? '#0369a1' : isTeleconsultQueue ? '#b45309' : '#166534',
               display: 'inline-flex',
               alignItems: 'center',
               justifyContent: 'center',
               marginBottom: '12px'
             }}>
-              {isTeleconsultQueue ? <PhoneCall size={36} /> : <Building size={36} />}
+              {patientReferralToken ? <Share2 size={36} /> : isTeleconsultQueue ? <PhoneCall size={36} /> : <Building size={36} />}
             </div>
 
             <h2 style={{ fontSize: '24px', fontWeight: 800, color: 'var(--text-dark)', marginBottom: '6px' }}>
-              {isTeleconsultQueue 
-                ? "📞 Routed to Assisted Specialist Teleconsultation" 
-                : "🏢 Routed to On-Site OPD Physician Consultation"}
+              {patientReferralToken
+                ? "🏥 In-Person Referral Generated"
+                : isTeleconsultQueue 
+                  ? "📞 Live Teleconsultation Waiting Room" 
+                  : "🏢 Routed to On-Site OPD Physician Consultation"}
             </h2>
 
             <p style={{ fontSize: '15px', color: 'var(--text-muted)', maxWidth: '600px', margin: '0 auto' }}>
-              {isTeleconsultQueue 
-                ? "Due to emergency triage priority or remote specialist requirements, you have been assigned to the Teleconsultation Queue."
-                : "Your intake history, vital signs, and digitized medical documents have been saved and assigned to your OPD consultation queue."}
+              {patientReferralToken
+                ? "Your specialist has generated an in-person referral pass for tertiary care."
+                : isTeleconsultQueue 
+                  ? "Your intake summary is live. Step into Booth #1 or tap below to join your video consultation."
+                  : "Your intake history and vital signs have been saved and assigned to your OPD consultation queue."}
             </p>
           </div>
 
-          {/* CLEAR DESTINATION ROUTING CARD */}
-          {isTeleconsultQueue ? (
-            /* ROUTING PATH B: ASSISTED TELECONSULTATION (NO DOCTOR OR RED FLAG) */
+          {/* DYNAMIC CENTRAL CARD */}
+          {patientReferralToken ? (
+            /* REQUIREMENT 2: IN-PERSON REFERRAL CODE PASS CARD (BLUE/GREEN CARD) */
+            <div style={{
+              background: 'linear-gradient(135deg, #f0fdf4 0%, #e0f2fe 100%)',
+              border: '2px solid #38bdf8',
+              borderRadius: '16px',
+              padding: '24px',
+              maxWidth: '680px',
+              margin: '0 auto 28px auto',
+              textAlign: 'center',
+              boxShadow: '0 8px 20px rgba(56, 189, 248, 0.15)'
+            }}>
+              <div style={{ fontSize: '13px', fontWeight: 800, color: '#0369a1', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '8px' }}>
+                In-Person Referral Generated
+              </div>
+
+              {/* Large Bold Referral Token */}
+              <div style={{
+                background: '#ffffff',
+                border: '2px dashed #0284c7',
+                borderRadius: '12px',
+                padding: '16px 24px',
+                display: 'inline-block',
+                margin: '8px 0 16px 0'
+              }}>
+                <span style={{ fontSize: '12px', color: '#64748b', fontWeight: 700, display: 'block' }}>REFERRAL PASS TOKEN</span>
+                <strong style={{ fontSize: '28px', color: '#0284c7', fontWeight: 800, letterSpacing: '1px' }}>
+                  Token: {patientReferralToken.id || `REF-${Math.floor(10000 + Math.random() * 90000)}`}
+                </strong>
+              </div>
+
+              {/* Destination Hospital */}
+              <div style={{ fontSize: '15px', fontWeight: 800, color: '#0f172a', marginBottom: '12px' }}>
+                Destination Hospital: {patientReferralToken.destination_facility_id || 'District Civil Hospital (Specialist OPD)'}
+              </div>
+
+              {/* Instructions Note */}
+              <div style={{ fontSize: '13px', color: '#1e293b', background: '#ffffff', padding: '12px 16px', borderRadius: '10px', fontWeight: 600, border: '1px solid #bae6fd' }}>
+                📌 <em>Please show this token at the destination hospital. An SMS has been sent to your mobile number.</em>
+              </div>
+            </div>
+          ) : isTeleconsultQueue ? (
+            /* REQUIREMENT 1: LIVE WAITING ROOM WITH GOOGLE MEET TELECONSULTATION LINK */
             <div style={{
               background: 'linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%)',
               border: '2px solid #fde68a',
               borderRadius: '16px',
               padding: '24px',
               maxWidth: '680px',
-              margin: '0 auto 28px auto'
+              margin: '0 auto 28px auto',
+              textAlign: 'center'
             }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px', borderBottom: '1px solid #fcd34d', paddingBottom: '12px' }}>
-                <PhoneCall size={24} color="#b45309" />
-                <div>
-                  <h3 style={{ fontSize: '18px', fontWeight: 800, color: '#78350f', margin: 0 }}>
-                    DESTINATION: KIOSK TELE-BOOTH #1 (District Teleconsult)
-                  </h3>
-                  <div style={{ fontSize: '12px', color: '#92400e', fontWeight: 600 }}>
-                    On-Call Specialist: Dr. Anita Verma (District Civil Hospital)
-                  </div>
-                </div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', marginBottom: '12px', borderBottom: '1px solid #fcd34d', paddingBottom: '12px' }}>
+                <PhoneCall size={22} color="#b45309" />
+                <h3 style={{ fontSize: '18px', fontWeight: 800, color: '#78350f', margin: 0 }}>
+                  DESTINATION: KIOSK TELE-BOOTH #1 (Live Teleconsult)
+                </h3>
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', marginBottom: '16px' }}>
@@ -647,15 +690,39 @@ export default function PatientKioskView({ patientId, language, onLanguageChange
                   <div style={{ fontSize: '22px', fontWeight: 800, color: '#b45309' }}>#1 (Next)</div>
                 </div>
                 <div style={{ background: '#ffffff', padding: '12px', borderRadius: '10px', textAlign: 'center' }}>
-                  <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 700 }}>TRIAGE STATUS</div>
-                  <div style={{ fontSize: '13px', fontWeight: 800, color: encounterSummary?.red_flags_detected ? '#dc2626' : '#b45309', marginTop: '4px' }}>
-                    {encounterSummary?.red_flags_detected ? 'RED-FLAG PRIORITY' : 'TELECONSULT'}
+                  <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 700 }}>SPECIALIST DOCTOR</div>
+                  <div style={{ fontSize: '13px', fontWeight: 800, color: '#b45309', marginTop: '4px' }}>
+                    Dr. Anita Verma
                   </div>
                 </div>
               </div>
 
-              <div style={{ fontSize: '14px', color: '#78350f', lineHeight: 1.5, fontWeight: 600 }}>
-                📌 <strong>What to do next:</strong> Please step into <strong>Kiosk Tele-Booth #1</strong>. The frontline health worker (ASHA) will assist you with the live audio/video specialist consultation.
+              {/* Large Prominent Video Consultation Button */}
+              <button
+                onClick={() => window.open('https://meet.google.com/new', '_blank')}
+                className="touch-btn"
+                style={{
+                  background: '#0284c7',
+                  color: '#ffffff',
+                  fontSize: '16px',
+                  fontWeight: 800,
+                  padding: '14px 28px',
+                  borderRadius: '30px',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '10px',
+                  boxShadow: '0 4px 14px rgba(2, 132, 199, 0.4)',
+                  margin: '8px 0',
+                  cursor: 'pointer',
+                  border: 'none'
+                }}
+              >
+                <Video size={22} /> Join Video Consultation
+              </button>
+
+              {/* Seamless Sub-Text */}
+              <div style={{ fontSize: '13px', color: '#78350f', fontWeight: 600, marginTop: '8px', lineHeight: 1.5 }}>
+                📌 If you are at the clinic, please step into Booth #1. If you are using your personal phone, tap the button above to join.
               </div>
             </div>
           ) : (
@@ -701,27 +768,7 @@ export default function PatientKioskView({ patientId, language, onLanguageChange
             </div>
           )}
 
-          {/* Generated Digital Referral Token Banner for Patient Login */}
-          {patientReferralToken && (
-            <div style={{
-              background: '#f0fdf4',
-              border: '2px solid #86efac',
-              borderRadius: '12px',
-              padding: '14px 18px',
-              maxWidth: '680px',
-              margin: '0 auto 20px auto',
-              color: '#14532d',
-              fontSize: '13px',
-              fontWeight: 800
-            }}>
-              🏥 DIGITAL REFERRAL TOKEN GENERATED: <span style={{ color: '#166534', background: '#ffffff', padding: '4px 8px', borderRadius: '6px', border: '1px solid #86efac' }}>{patientReferralToken.id}</span>
-              <div style={{ fontSize: '12px', color: '#15803d', fontWeight: 600, marginTop: '4px' }}>
-                Destination: {patientReferralToken.destination_facility_id} | Status: {patientReferralToken.status}
-              </div>
-            </div>
-          )}
-
-          {/* Clean Patient Details Status Summary */}
+          {/* DYNAMIC REGISTRATION TRIAGE STATUS BADGE */}
           <div style={{
             background: 'var(--bg-slate)',
             padding: '16px 20px',
@@ -740,12 +787,28 @@ export default function PatientKioskView({ patientId, language, onLanguageChange
             </div>
             <div>
               <span style={{ color: 'var(--text-muted)', display: 'block', fontWeight: 600 }}>Registration Triage Status:</span>
-              <strong style={{ color: encounterSummary?.red_flags_detected ? '#dc2626' : '#166534', fontSize: '14px' }}>
-                {encounterSummary?.red_flags_detected ? '🚨 Emergency Red-Flag Priority' : '✅ Registered & Assigned to Queue'}
+              <strong style={{
+                color: patientReferralToken 
+                  ? '#0284c7' 
+                  : isTeleconsultQueue 
+                    ? '#166534' 
+                    : encounterSummary?.red_flags_detected 
+                      ? '#dc2626' 
+                      : '#166534',
+                fontSize: '14px'
+              }}>
+                {patientReferralToken
+                  ? '🏥 Referral Issued'
+                  : isTeleconsultQueue
+                    ? '🟢 Consultation Ready'
+                    : encounterSummary?.red_flags_detected
+                      ? '🚨 Emergency Red-Flag Priority'
+                      : '✅ Registered & Assigned to Queue'}
               </strong>
             </div>
           </div>
 
+          {/* BOTTOM BUTTON: KEEP EXACTLY WHERE IT IS */}
           <button
             onClick={handleStartNextPatientIntake}
             className="touch-btn primary"
