@@ -271,80 +271,26 @@ export default function ModuleCPhysicianView({ patientId, currentUser }) {
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '16px' }}>
       
       {/* ================================================================ */}
-      {/* 1. TOP BAR: PATIENT BANNER & QUICK NAVIGATION                    */}
+      {/* 1. TOP-MOST DASHBOARD NAVIGATION BAR                              */}
       {/* ================================================================ */}
       <div className="card-panel" style={{ padding: '16px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
-        
-        {/* Patient Identifier & Alert Badges */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
-          <div>
-            <h2 style={{ fontSize: '18px', fontWeight: 800, color: 'var(--text-dark)', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
-              👤 Patient: {selectedPatientInfo.name}
-            </h2>
-            <div style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '2px', fontWeight: 600 }}>
-              Age: <strong>{selectedPatientInfo.age} Yrs</strong> | Gender: <strong>{selectedPatientInfo.gender}</strong> | ID: <strong>{selectedPatientInfo.patient_id}</strong>
-            </div>
-          </div>
+        <h2 style={{ fontSize: '18px', fontWeight: 800, color: 'var(--text-dark)', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+          👨‍⚕️ Physician & Specialist Clinical Portal
+        </h2>
 
-          {/* Visual Critical Alert Badges */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            {selectedPatientInfo.red_flag || summaryData?.red_flags_detected ? (
-              <span className="badge" style={{ background: '#fef2f2', color: '#dc2626', border: '1px solid #fca5a5', fontWeight: 800, fontSize: '12px', padding: '6px 12px' }}>
-                🚨 Red Flag Triage Priority
-              </span>
-            ) : null}
-
-            {selectedPatientInfo.is_high_risk && (
-              <span className="badge" style={{ background: '#fffbeb', color: '#b45309', border: '1px solid #fde68a', fontWeight: 800, fontSize: '12px', padding: '6px 12px' }}>
-                ⚠️ High Risk Profile
-              </span>
-            )}
-
-            <span className="badge" style={{ background: '#f0f9ff', color: '#0369a1', border: '1px solid #bae6fd', fontWeight: 800, fontSize: '12px', padding: '6px 12px' }}>
-              🟢 Teleconsultation Queue
-            </span>
-          </div>
-        </div>
-
-        {/* Navigation & Patient Queue Selector */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <div style={{ display: 'flex', background: 'var(--bg-slate)', padding: '4px', borderRadius: '20px', border: '1px solid var(--border-color)' }}>
-            <button
-              onClick={() => setActiveTab('teleconsult')}
-              className={`mode-btn ${activeTab === 'teleconsult' ? 'active' : ''}`}
-            >
-              <PhoneCall size={14} /> Teleconsult Queue ({patientQueue.length})
-            </button>
-            <button
-              onClick={() => setActiveTab('referrals')}
-              className={`mode-btn ${activeTab === 'referrals' ? 'active' : ''}`}
-            >
-              Referral Tracker ({referralList.length})
-            </button>
-          </div>
-
-          {/* Priority Queue Sorted Patient Dropdown */}
-          <select
-            value={selectedPatientId}
-            onChange={(e) => setSelectedPatientId(e.target.value)}
-            style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '12px', fontWeight: 700, maxWidth: '380px' }}
-          >
-            {getSortedPatientQueue(patientQueue).map((p, i) => (
-              <option key={i} value={p.patient_id}>
-                {getPatientOptionLabel(p, i)}
-              </option>
-            ))}
-          </select>
-
-          {/* Next Patient Button */}
+        {/* Top-Level Tab Switcher Buttons */}
+        <div style={{ display: 'flex', background: 'var(--bg-slate)', padding: '4px', borderRadius: '20px', border: '1px solid var(--border-color)' }}>
           <button
-            onClick={handleNextPatient}
-            className="touch-btn primary"
-            style={{ padding: '8px 16px', fontSize: '12px', fontWeight: 800, borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '6px', whiteSpace: 'nowrap' }}
-            title="Advance to next patient in queue priority order"
+            onClick={() => setActiveTab('teleconsult')}
+            className={`mode-btn ${activeTab === 'teleconsult' ? 'active' : ''}`}
           >
-            <span>Next Patient</span>
-            <ChevronRight size={16} />
+            <PhoneCall size={14} /> Teleconsultation Queue ({patientQueue.length})
+          </button>
+          <button
+            onClick={() => setActiveTab('referrals')}
+            className={`mode-btn ${activeTab === 'referrals' ? 'active' : ''}`}
+          >
+            Referral Tracker ({referralList.length})
           </button>
         </div>
       </div>
@@ -356,7 +302,9 @@ export default function ModuleCPhysicianView({ patientId, currentUser }) {
         </div>
       )}
 
-      {/* Referral Tracker View Tab */}
+      {/* ================================================================ */}
+      {/* VIEW A: REFERRAL TRACKER VIEW (PATIENT DETAILS HIDDEN)           */}
+      {/* ================================================================ */}
       {activeTab === 'referrals' ? (
         <div className="card-panel">
           <h3 style={{ fontSize: '16px', fontWeight: 800, color: 'var(--text-dark)', marginBottom: '16px' }}>
@@ -412,10 +360,73 @@ export default function ModuleCPhysicianView({ patientId, currentUser }) {
         </div>
       ) : (
         /* ================================================================ */
-        /* 2-COLUMN ADJUSTED SPLIT-SCREEN LAYOUT FOR PHYSICIAN (RIGHT REMOVED) */
+        /* VIEW B: TELECONSULTATION QUEUE VIEW (PATIENT DETAILS & CLINICAL UI) */
         /* ================================================================ */
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           
+          {/* PATIENT BANNER & QUEUE SELECTOR (ONLY VISIBLE WHEN TELECONSULTATION IS CLICKED) */}
+          <div className="card-panel" style={{ padding: '16px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+            
+            {/* Patient Identifier & Alert Badges */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
+              <div>
+                <h2 style={{ fontSize: '18px', fontWeight: 800, color: 'var(--text-dark)', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  👤 Patient: {selectedPatientInfo.name}
+                </h2>
+                <div style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '2px', fontWeight: 600 }}>
+                  Age: <strong>{selectedPatientInfo.age} Yrs</strong> | Gender: <strong>{selectedPatientInfo.gender}</strong> | ID: <strong>{selectedPatientInfo.patient_id}</strong>
+                </div>
+              </div>
+
+              {/* Visual Critical Alert Badges */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                {selectedPatientInfo.red_flag || summaryData?.red_flags_detected ? (
+                  <span className="badge" style={{ background: '#fef2f2', color: '#dc2626', border: '1px solid #fca5a5', fontWeight: 800, fontSize: '12px', padding: '6px 12px' }}>
+                    🚨 Red Flag Triage Priority
+                  </span>
+                ) : null}
+
+                {selectedPatientInfo.is_high_risk && (
+                  <span className="badge" style={{ background: '#fffbeb', color: '#b45309', border: '1px solid #fde68a', fontWeight: 800, fontSize: '12px', padding: '6px 12px' }}>
+                    ⚠️ High Risk Profile
+                  </span>
+                )}
+
+                <span className="badge" style={{ background: '#f0f9ff', color: '#0369a1', border: '1px solid #bae6fd', fontWeight: 800, fontSize: '12px', padding: '6px 12px' }}>
+                  🟢 Teleconsultation Queue
+                </span>
+              </div>
+            </div>
+
+            {/* Navigation & Patient Queue Selector */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              {/* Priority Queue Sorted Patient Dropdown */}
+              <select
+                value={selectedPatientId}
+                onChange={(e) => setSelectedPatientId(e.target.value)}
+                style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '12px', fontWeight: 700, maxWidth: '380px' }}
+              >
+                {getSortedPatientQueue(patientQueue).map((p, i) => (
+                  <option key={i} value={p.patient_id}>
+                    {getPatientOptionLabel(p, i)}
+                  </option>
+                ))}
+              </select>
+
+              {/* Next Patient Button */}
+              <button
+                onClick={handleNextPatient}
+                className="touch-btn primary"
+                style={{ padding: '8px 16px', fontSize: '12px', fontWeight: 800, borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '6px', whiteSpace: 'nowrap' }}
+                title="Advance to next patient in queue priority order"
+              >
+                <span>Next Patient</span>
+                <ChevronRight size={16} />
+              </button>
+            </div>
+          </div>
+
+          {/* 2-COLUMN CLINICAL ENCOUNTER SPLIT-SCREEN LAYOUT */}
           <div style={{ display: 'grid', gridTemplateColumns: '1.1fr 1fr', gap: '16px', alignItems: 'start' }}>
             
             {/* ============================================================ */}
