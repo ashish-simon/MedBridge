@@ -118,24 +118,26 @@ export default function ModuleCPhysicianView({ patientId, currentUser }) {
     const found = sorted.find(p => p.patient_id === pid);
     if (found) {
       setSelectedPatientInfo({
-        name: found.full_name || found.name || (pid.startsWith('pat-') ? `Patient #${pid.slice(-6)}` : pid),
-        age: found.age || 45,
-        gender: found.gender || 'Male',
+        name: found.full_name || found.name || found.patient_id,
+        age: found.age || 'N/A',
+        gender: found.gender || 'unspecified',
         patient_id: pid,
         is_high_risk: found.is_high_risk || false,
         red_flag: found.red_flag_detected || false,
-        chief_complaint: found.chief_complaint || 'Standard OPD Assessment'
+        chief_complaint: found.chief_complaint || 'Standard Intake Assessment'
+      });
+    } else if (pid) {
+      setSelectedPatientInfo({
+        name: pid,
+        age: 'N/A',
+        gender: 'unspecified',
+        patient_id: pid,
+        is_high_risk: false,
+        red_flag: false,
+        chief_complaint: 'Patient record created'
       });
     } else {
-      setSelectedPatientInfo({
-        name: pid === 'pat_test_01' ? 'Ramesh Kumar' : (pid.startsWith('pat-') ? `Patient #${pid.slice(-6)}` : pid),
-        age: 45,
-        gender: 'Male',
-        patient_id: pid,
-        is_high_risk: true,
-        red_flag: pid === 'pat_test_01',
-        chief_complaint: 'Severe chest pain & dizziness'
-      });
+      setSelectedPatientInfo(null);
     }
   };
 

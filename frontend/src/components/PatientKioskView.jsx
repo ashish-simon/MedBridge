@@ -9,6 +9,7 @@ import { stopGlobalAudio, playGlobalAudio, getGlobalPlayId } from '../utils/audi
 
 export default function PatientKioskView({ patientId, language, onLanguageChange, onCompleteKiosk }) {
   const [currentStep, setCurrentStep] = useState(1);
+  const [maxStepReached, setMaxStepReached] = useState(1);
   
   // Step 2 Intake State
   const [messages, setMessages] = useState([]);
@@ -271,9 +272,11 @@ export default function PatientKioskView({ patientId, language, onLanguageChange
         });
       }
 
+      setMaxStepReached(prev => Math.max(prev, 3));
       setCurrentStep(3); // Move to Documents
     } catch (e) {
       console.error('Intake submit error:', e);
+      setMaxStepReached(prev => Math.max(prev, 3));
       setCurrentStep(3);
     } finally {
       setIsProcessing(false);
@@ -288,9 +291,16 @@ export default function PatientKioskView({ patientId, language, onLanguageChange
     setExtractedState({});
     setRedFlagAlert(null);
     setEncounterSummary(null);
+    setMaxStepReached(1);
     setCurrentStep(1);
     if (onCompleteKiosk) {
       await onCompleteKiosk();
+    }
+  };
+
+  const handleStepClick = (stepNum) => {
+    if (stepNum <= maxStepReached) {
+      setCurrentStep(stepNum);
     }
   };
 
@@ -302,7 +312,8 @@ export default function PatientKioskView({ patientId, language, onLanguageChange
       <div className="step-nav">
         <div 
           className={`step-item ${currentStep === 1 ? 'active' : ''} ${currentStep > 1 ? 'completed' : ''}`}
-          onClick={() => setCurrentStep(1)}
+          style={{ cursor: 'pointer' }}
+          onClick={() => handleStepClick(1)}
         >
           <div className="step-number">{currentStep > 1 ? <CheckCircle2 size={18} /> : '1'}</div>
           <div className="step-label">1. ABHA & Consent</div>
@@ -312,7 +323,9 @@ export default function PatientKioskView({ patientId, language, onLanguageChange
 
         <div 
           className={`step-item ${currentStep === 2 ? 'active' : ''} ${currentStep > 2 ? 'completed' : ''}`}
-          onClick={() => setCurrentStep(2)}
+          style={{ cursor: 2 <= maxStepReached ? 'pointer' : 'not-allowed', opacity: 2 <= maxStepReached ? 1 : 0.5 }}
+          onClick={() => handleStepClick(2)}
+          title={2 > maxStepReached ? "Please complete Step 1 ABHA & Consent first" : ""}
         >
           <div className="step-number">{currentStep > 2 ? <CheckCircle2 size={18} /> : '2'}</div>
           <div className="step-label">2. Voice Intake & Triage</div>
@@ -322,7 +335,9 @@ export default function PatientKioskView({ patientId, language, onLanguageChange
 
         <div 
           className={`step-item ${currentStep === 3 ? 'active' : ''} ${currentStep > 3 ? 'completed' : ''}`}
-          onClick={() => setCurrentStep(3)}
+          style={{ cursor: 3 <= maxStepReached ? 'pointer' : 'not-allowed', opacity: 3 <= maxStepReached ? 1 : 0.5 }}
+          onClick={() => handleStepClick(3)}
+          title={3 > maxStepReached ? "Please complete Step 2 AI Intake first" : ""}
         >
           <div className="step-number">{currentStep > 3 ? <CheckCircle2 size={18} /> : '3'}</div>
           <div className="step-label">3. Documents & OCR</div>
@@ -332,7 +347,9 @@ export default function PatientKioskView({ patientId, language, onLanguageChange
 
         <div 
           className={`step-item ${currentStep === 4 ? 'active' : ''}`}
-          onClick={() => setCurrentStep(4)}
+          style={{ cursor: 4 <= maxStepReached ? 'pointer' : 'not-allowed', opacity: 4 <= maxStepReached ? 1 : 0.5 }}
+          onClick={() => handleStepClick(4)}
+          title={4 > maxStepReached ? "Please complete Step 3 Documents first" : ""}
         >
           <div className="step-number">4</div>
           <div className="step-label">4. Routing & Queue</div>
@@ -375,7 +392,10 @@ export default function PatientKioskView({ patientId, language, onLanguageChange
         <ModuleDConsent 
           language={language}
           onLanguageChange={onLanguageChange}
-          onStartIntake={() => setCurrentStep(2)}
+          onStartIntake={() => {
+            setMaxStepReached(prev => Math.max(prev, 2));
+            setCurrentStep(2);
+          }}
           sessionData={{ patientId }}
         />
       )}
@@ -579,7 +599,10 @@ export default function PatientKioskView({ patientId, language, onLanguageChange
       {currentStep === 3 && (
         <ModuleBDocuments 
           patientId={patientId}
-          onNext={() => setCurrentStep(4)}
+          onNext={() => {
+            setMaxStepReached(prev => Math.max(prev, 4));
+            setCurrentStep(4);
+          }}
         />
       )}
 

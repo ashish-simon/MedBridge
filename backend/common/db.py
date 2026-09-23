@@ -609,26 +609,41 @@ def fetch_user_by_id(user_id: str) -> Optional[dict]:
 
 
 def fetch_all_patient_sessions() -> List[dict]:
-    """Fetches all active patient sessions for physician dashboard queue."""
+    """Fetches all active patient sessions with full patient details for physician dashboard queue."""
     rows = fetch_all_db("""
         SELECT 
             s.patient_id, 
             s.language, 
             s.mode, 
             s.created_at,
+            p.name as patient_name,
+            p.age,
+            p.gender,
+            p.contact_number,
+            p.abha_id,
+            u.full_name as user_full_name,
             h.chief_complaint,
             h.red_flag_detected,
             h.red_flag_reason,
             (SELECT COUNT(*) FROM module_b_documents b WHERE b.patient_id = s.patient_id) as doc_count,
             (SELECT COUNT(*) FROM module_c_summaries c WHERE c.patient_id = s.patient_id) as summary_count
         FROM sessions s
+        LEFT JOIN patients p ON s.patient_id = p.id
+        LEFT JOIN users u ON s.patient_id = u.user_id
         LEFT JOIN module_a_history h ON s.patient_id = h.patient_id
         ORDER BY s.created_at DESC
     """)
     results = []
     for r in rows:
+        name = r.get("patient_name") or r.get("user_full_name") or r["patient_id"]
         results.append({
             "patient_id": r["patient_id"],
+            "full_name": name,
+            "name": name,
+            "age": r.get("age") or 30,
+            "gender": r.get("gender") or "unspecified",
+            "contact_number": r.get("contact_number"),
+            "abha_id": r.get("abha_id"),
             "language": r.get("language", "en"),
             "mode": r.get("mode", "standard"),
             "created_at": str(r.get("created_at", "")),

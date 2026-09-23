@@ -201,15 +201,15 @@ def list_referrals(
     query = "SELECT r.*, p.name as patient_name, p.age, p.gender, p.contact_number FROM referrals r LEFT JOIN patients p ON r.patient_id = p.id WHERE 1=1"
     params = []
 
-    if facility_id:
+    if facility_id and isinstance(facility_id, str):
         query += " AND (r.origin_facility_id = %s OR r.destination_facility_id = %s)"
         params.extend([facility_id, facility_id])
 
-    if patient_id:
+    if patient_id and isinstance(patient_id, str):
         query += " AND r.patient_id = %s"
         params.append(patient_id)
 
-    if status:
+    if status and isinstance(status, str):
         query += " AND r.status = %s"
         params.append(status.upper())
 
@@ -275,42 +275,17 @@ def get_high_risk_followups(
     """
     params = []
 
-    if worker_id:
+    if worker_id and isinstance(worker_id, str):
         query += " AND hr.assigned_worker_id = %s"
         params.append(worker_id)
 
-    if status:
+    if status and isinstance(status, str):
         query += " AND hr.status = %s"
         params.append(status.upper())
 
     query += " ORDER BY hr.follow_up_due_date ASC"
 
     rows = fetch_all_db(query, tuple(params))
-    if not rows and not worker_id and not status:
-        try:
-            execute_db("""
-                INSERT INTO patients (id, name, age, gender, contact_number)
-                VALUES 
-                    ('pat-001', 'Sita Devi', 28, 'Female', '9876543210'),
-                    ('pat-002', 'Sunita Sharma', 32, 'Female', '9876543211'),
-                    ('pat-003', 'Ramesh Kumar', 45, 'Male', '9876543212')
-            """)
-        except Exception:
-            pass
-
-        try:
-            execute_db("""
-                INSERT INTO high_risk_registry (id, patient_id, condition_tag, assigned_worker_id, follow_up_due_date, status)
-                VALUES 
-                    ('hr-001', 'pat-001', 'High-Risk Pregnancy & HTN', 'ASHA-001', '2026-09-25', 'PENDING_VISIT'),
-                    ('hr-002', 'pat-002', 'Severe Anemia (Hb 7.2)', 'ASHA-001', '2026-09-26', 'PENDING_VISIT'),
-                    ('hr-003', 'pat-003', 'Chronic HTN & Diabetes', 'ASHA-001', '2026-09-28', 'PENDING_VISIT')
-            """)
-        except Exception:
-            pass
-
-        rows = fetch_all_db(query, tuple(params))
-
     return {
         "total_tasks": len(rows),
         "tasks": rows
@@ -424,4 +399,20 @@ def sync_batch_data(req: BatchSyncRequest):
         "failed_count": len(req.mutations) - synced_count,
         "resolved_records": resolved_records,
         "synced_at": datetime.now(timezone.utc).isoformat()
+    }
+
+
+# ----------------------------------------------------
+# 5. ADMIN DATABASE CLEAN RESET
+# ----------------------------------------------------
+
+@router.post("/admin/reset-database")
+def admin_reset_database():
+    """Purges all tables and re-initializes clean empty database schema."""
+    from reset_database import reset_all_tables
+    reset_all_tables()
+    return {
+        "status": "success",
+        "message": "Database successfully reset to clean empty state.",
+        "reset_at": datetime.now(timezone.utc).isoformat()
     }

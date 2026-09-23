@@ -14,69 +14,10 @@ export default function AshaFrontlineView({ currentUser }) {
 
   // Section 1: Red Flag Alerts state
   const [fadingAlertIds, setFadingAlertIds] = useState([]);
-  const [redFlagAlerts, setRedFlagAlerts] = useState([
-    {
-      id: 'alert-402',
-      patient_id: '402',
-      patient_name: 'Patient #402',
-      symptom: 'Severe chest pain & shortness of breath',
-      priority: 'EMERGENCY RED FLAG',
-      created_at: 'Just Now',
-      status: 'ACTIVE'
-    }
-  ]);
+  const [redFlagAlerts, setRedFlagAlerts] = useState([]);
 
   // Section 2: High Risk Tasks Checklist state
-  const [tasks, setTasks] = useState([
-    {
-      id: 'hr-101',
-      patient_id: 'pat-priya-101',
-      patient_name: 'Priya',
-      condition_tag: '3rd Trimester Pregnancy',
-      action_needed: 'Check Vitals & Fetal Movement',
-      follow_up_due_date: new Date().toISOString().split('T')[0],
-      status: 'PENDING_VISIT',
-      bp: '130/85',
-      hb: '10.8',
-      notes: 'Scheduled 3rd trimester routine home check'
-    },
-    {
-      id: 'hr-102',
-      patient_id: 'pat-ramesh-102',
-      patient_name: 'Ramesh',
-      condition_tag: 'Chronic Diabetes',
-      action_needed: 'Blood Sugar Check & Medication Compliance',
-      follow_up_due_date: new Date().toISOString().split('T')[0],
-      status: 'PENDING_VISIT',
-      bp: '138/88',
-      hb: '12.0',
-      notes: 'Check fasting blood sugar and insulin adherence'
-    },
-    {
-      id: 'hr-103',
-      patient_id: 'pat-sita-103',
-      patient_name: 'Sita Devi',
-      condition_tag: 'Severe Anemia (Hb 7.2)',
-      action_needed: 'Hemoglobin & Iron Supplement Monitor',
-      follow_up_due_date: new Date().toISOString().split('T')[0],
-      status: 'PENDING_VISIT',
-      bp: '110/70',
-      hb: '7.2',
-      notes: 'Severe anemia monitoring & IFA tablet supply'
-    },
-    {
-      id: 'hr-104',
-      patient_id: 'pat-devraj-104',
-      patient_name: 'Devraj',
-      condition_tag: 'Elderly Malnutrition & HTN',
-      action_needed: 'Nutritional Intake & BP Check',
-      follow_up_due_date: new Date().toISOString().split('T')[0],
-      status: 'PENDING_VISIT',
-      bp: '145/92',
-      hb: '11.2',
-      notes: 'Elderly home care visit and dietary compliance'
-    }
-  ]);
+  const [tasks, setTasks] = useState([]);
 
   const [selectedTask, setSelectedTask] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -123,17 +64,17 @@ export default function AshaFrontlineView({ currentUser }) {
       if (res.ok) {
         const data = await res.json();
         const serverList = data.tasks || [];
+        setTasks(serverList);
         if (serverList.length > 0) {
-          // Merge server tasks with initial items
-          setTasks(serverList);
           handleSelectTask(serverList[0]);
         } else {
-          handleSelectTask(tasks[0]);
+          setSelectedTask(null);
         }
       }
     } catch (e) {
-      console.log('Using local high-risk task list');
-      if (tasks.length > 0) handleSelectTask(tasks[0]);
+      console.log('Error fetching high-risk tasks:', e);
+      setTasks([]);
+      setSelectedTask(null);
     }
   };
 
@@ -143,21 +84,19 @@ export default function AshaFrontlineView({ currentUser }) {
       if (res.ok) {
         const data = await res.json();
         const redFlags = (data.patients || []).filter(p => p.red_flag_detected);
-        if (redFlags.length > 0) {
-          const formatted = redFlags.map((p, idx) => ({
-            id: `alert-${p.patient_id}`,
-            patient_id: p.patient_id,
-            patient_name: p.patient_id,
-            symptom: p.red_flag_reason || p.chief_complaint || 'Severe emergency symptoms',
-            priority: 'EMERGENCY RED FLAG',
-            created_at: p.created_at || 'Just Now',
-            status: 'ACTIVE'
-          }));
-          setRedFlagAlerts(formatted);
-        }
+        const formatted = redFlags.map((p) => ({
+          id: `alert-${p.patient_id}`,
+          patient_id: p.patient_id,
+          patient_name: p.full_name || p.name || p.patient_id,
+          symptom: p.red_flag_reason || p.chief_complaint || 'Needs immediate attention',
+          priority: 'EMERGENCY RED FLAG',
+          created_at: p.created_at || 'Recently',
+          status: 'ACTIVE'
+        }));
+        setRedFlagAlerts(formatted);
       }
     } catch (e) {
-      console.log('Red flag alert fetch fallback');
+      console.log('Error fetching red flag alerts:', e);
     }
   };
 

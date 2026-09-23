@@ -60,8 +60,16 @@ def register_user(req: RegisterRequest):
         raise HTTPException(status_code=400, detail="Username is already registered. Please choose another username or log in.")
 
     # Generate user_id & patient_id prefix
-    prefix_map = {"patient": "pat", "asha": "asha", "doctor": "doc"}
-    user_id = f"{prefix_map.get(role, 'usr')}-{uuid.uuid4().hex[:8]}"
+    if role == "patient":
+        # Check if username is already formatted as PAT-XXXXXX
+        if req.username.strip().upper().startswith("PAT-"):
+            user_id = req.username.strip().upper()
+        else:
+            user_id = f"PAT-{uuid.uuid4().hex[:6].upper()}"
+    else:
+        prefix_map = {"asha": "ASHA", "doctor": "DOC"}
+        user_id = f"{prefix_map.get(role, 'USR')}-{uuid.uuid4().hex[:6].upper()}"
+
     pwd_hash = hash_password(req.password.strip())
     full_name = req.full_name.strip() or req.username.strip()
 
@@ -77,9 +85,16 @@ def register_user(req: RegisterRequest):
     if not created:
         raise HTTPException(status_code=500, detail="Failed to create user account.")
 
-    # If patient, initialize session row in database
+    # If patient, initialize session row and patient record in database
     if role == "patient":
         save_sessions_row(user_id)
+        from common.db import execute_db, fetch_one_db
+        pat = fetch_one_db("SELECT id FROM patients WHERE id = %s", (user_id,))
+        if not pat:
+            execute_db("""
+                INSERT INTO patients (id, abha_id, name, age, gender, contact_number)
+                VALUES (%s, %s, %s, %s, %s, %s)
+            """, (user_id, req.abha_id.strip() if req.abha_id else None, full_name, 30, "unspecified", req.username.strip() if req.username.strip().isdigit() else None))
 
     return {
         "user_id": user_id,
