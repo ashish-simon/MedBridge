@@ -13,13 +13,13 @@ export default function AshaFrontlineView({ currentUser }) {
   const [syncing, setSyncing] = useState(false);
 
   // Section 1: Red Flag Alerts state
+  const [fadingAlertIds, setFadingAlertIds] = useState([]);
   const [redFlagAlerts, setRedFlagAlerts] = useState([
     {
       id: 'alert-402',
       patient_id: '402',
       patient_name: 'Patient #402',
-      symptom: 'severe chest pain & shortness of breath',
-      location: 'Kiosk Booth #1 / Waiting Area',
+      symptom: 'Severe chest pain & shortness of breath',
       priority: 'EMERGENCY RED FLAG',
       created_at: 'Just Now',
       status: 'ACTIVE'
@@ -148,8 +148,7 @@ export default function AshaFrontlineView({ currentUser }) {
             id: `alert-${p.patient_id}`,
             patient_id: p.patient_id,
             patient_name: p.patient_id,
-            symptom: p.red_flag_reason || p.chief_complaint || 'severe emergency symptoms',
-            location: 'Kiosk Booth #1 / Waiting Area',
+            symptom: p.red_flag_reason || p.chief_complaint || 'Severe emergency symptoms',
             priority: 'EMERGENCY RED FLAG',
             created_at: p.created_at || 'Just Now',
             status: 'ACTIVE'
@@ -160,6 +159,14 @@ export default function AshaFrontlineView({ currentUser }) {
     } catch (e) {
       console.log('Red flag alert fetch fallback');
     }
+  };
+
+  const handleDismissAlert = (alertId) => {
+    setFadingAlertIds(prev => [...prev, alertId]);
+    setTimeout(() => {
+      setRedFlagAlerts(prev => prev.filter(a => a.id !== alertId));
+      setFadingAlertIds(prev => prev.filter(id => id !== alertId));
+    }, 600);
   };
 
   const handleSelectTask = (task) => {
@@ -448,47 +455,64 @@ export default function AshaFrontlineView({ currentUser }) {
         </div>
 
         {/* Red Flag Alert Cards */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-          {redFlagAlerts.map((alert, idx) => (
-            <div key={idx} style={{
-              background: '#ffffff',
-              border: '1px solid #fca5a5',
-              borderRadius: '12px',
-              padding: '14px 18px',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              flexWrap: 'wrap',
-              gap: '12px'
-            }}>
-              <div>
-                <div style={{ fontSize: '14px', fontWeight: 800, color: '#991b1b' }}>
-                  🚨 URGENT: Patient #{alert.patient_id} in waiting area reported {alert.symptom}. Intervene immediately.
-                </div>
-                <div style={{ fontSize: '12px', color: '#4b5563', marginTop: '4px' }}>
-                  Location: <strong>{alert.location}</strong> | Status: <span style={{ color: '#dc2626', fontWeight: 700 }}>{alert.priority}</span> ({alert.created_at})
-                </div>
-              </div>
+        {redFlagAlerts.length === 0 ? (
+          <div style={{ color: '#166534', fontSize: '13px', fontWeight: 700, padding: '6px 0' }}>
+            ✓ All emergency red-flag alerts acknowledged.
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            {redFlagAlerts.map((alert, idx) => {
+              const isFading = fadingAlertIds.includes(alert.id);
+              return (
+                <div key={idx} style={{
+                  background: '#ffffff',
+                  border: '1px solid #fca5a5',
+                  borderRadius: '12px',
+                  padding: isFading ? '0px 18px' : '14px 18px',
+                  maxHeight: isFading ? '0px' : '120px',
+                  opacity: isFading ? 0 : 1,
+                  overflow: 'hidden',
+                  transition: 'all 0.6s cubic-bezier(0.4, 0, 0.2, 1)',
+                  transform: isFading ? 'scale(0.95)' : 'scale(1)',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  flexWrap: 'wrap',
+                  gap: '12px'
+                }}>
+                  <div>
+                    <div style={{ fontSize: '14px', fontWeight: 800, color: '#991b1b' }}>
+                      🚨 URGENT: Patient #{alert.patient_id} - {alert.symptom} - Needs attention.
+                    </div>
+                    <div style={{ fontSize: '12px', color: '#4b5563', marginTop: '4px' }}>
+                      Status: <span style={{ color: '#dc2626', fontWeight: 700 }}>{alert.priority}</span> ({alert.created_at})
+                    </div>
+                  </div>
 
-              <div style={{ display: 'flex', gap: '8px' }}>
-                <button
-                  onClick={() => handleInterveneEmergency(alert)}
-                  className="touch-btn"
-                  style={{ background: '#dc2626', color: '#ffffff', border: 'none', padding: '8px 14px', fontSize: '12px', fontWeight: 700, borderRadius: '8px' }}
-                >
-                  Intervene & Check Vitals
-                </button>
-                <button
-                  onClick={() => handleEscalateDoctor(alert)}
-                  className="touch-btn"
-                  style={{ background: '#991b1b', color: '#ffffff', border: 'none', padding: '8px 14px', fontSize: '12px', fontWeight: 700, borderRadius: '8px' }}
-                >
-                  Escalate to Doctor
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
+                  <div>
+                    <button
+                      onClick={() => handleDismissAlert(alert.id)}
+                      className="touch-btn"
+                      style={{
+                        background: '#dc2626',
+                        color: '#ffffff',
+                        border: 'none',
+                        padding: '8px 22px',
+                        fontSize: '13px',
+                        fontWeight: 800,
+                        borderRadius: '8px',
+                        cursor: 'pointer',
+                        boxShadow: '0 2px 4px rgba(220, 38, 38, 0.2)'
+                      }}
+                    >
+                      Okay
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* ================================================================ */}
