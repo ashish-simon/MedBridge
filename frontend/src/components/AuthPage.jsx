@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Stethoscope, User, Activity, HeartPulse, ShieldCheck, UserPlus, LogIn, AlertCircle, CheckCircle2 } from 'lucide-react';
 
 export default function AuthPage({ onLoginSuccess, currentLanguage, onLanguageChange }) {
-  const [role, setRole] = useState('patient'); // 'patient', 'asha', 'doctor', 'admin'
+  const [role, setRole] = useState('patient'); // 'patient', 'asha', 'doctor'
   const [isRegister, setIsRegister] = useState(false);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -74,8 +74,7 @@ export default function AuthPage({ onLoginSuccess, currentLanguage, onLanguageCh
   const roleTabs = [
     { id: 'patient', label: 'Patient Kiosk', icon: <User size={16} /> },
     { id: 'asha', label: 'ASHA Worker', icon: <HeartPulse size={16} /> },
-    { id: 'doctor', label: 'Physician Portal', icon: <Activity size={16} /> },
-    { id: 'admin', label: 'Admin Dashboard', icon: <ShieldCheck size={16} /> }
+    { id: 'doctor', label: 'Physician Portal', icon: <Activity size={16} /> }
   ];
 
   return (
@@ -247,8 +246,7 @@ export default function AuthPage({ onLoginSuccess, currentLanguage, onLanguageCh
                   type="text"
                   placeholder={
                     role === 'doctor' ? 'Dr. Rajesh Sharma' :
-                    role === 'asha' ? 'Sunita Devi (ASHA Worker)' :
-                    role === 'admin' ? 'System Administrator' : 'Ramesh Kumar'
+                    role === 'asha' ? 'Sunita Devi (ASHA Worker)' : 'Ramesh Kumar'
                   }
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}

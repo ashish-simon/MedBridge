@@ -8,8 +8,6 @@ export default function Header({ currentUser, language, onLanguageChange, onLogo
         return { label: 'ASHA Health Worker', bg: '#ecfdf5', color: '#047857', icon: <HeartPulse size={14} /> };
       case 'doctor':
         return { label: 'Physician / Specialist', bg: '#f0f9ff', color: '#0369a1', icon: <Activity size={14} /> };
-      case 'admin':
-        return { label: 'System Admin', bg: '#fef3c7', color: '#b45309', icon: <ShieldCheck size={14} /> };
       default:
         return { label: 'Patient Kiosk', bg: '#f3e8ff', color: '#6b21a8', icon: <User size={14} /> };
     }

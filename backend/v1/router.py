@@ -425,37 +425,3 @@ def sync_batch_data(req: BatchSyncRequest):
         "resolved_records": resolved_records,
         "synced_at": datetime.now(timezone.utc).isoformat()
     }
-
-
-# ----------------------------------------------------
-# 5. ADMINISTRATOR DASHBOARD REAL ANALYTICS
-# ----------------------------------------------------
-
-@router.get("/admin/analytics")
-def get_admin_analytics():
-    """Calculates real-time system-wide analytics directly from persistent SQL tables."""
-    total_encounters_row = fetch_one_db("SELECT COUNT(*) as count FROM encounters")
-    kiosk_intakes_row = fetch_one_db("SELECT COUNT(*) as count FROM encounters WHERE encounter_type = 'Kiosk'")
-    teleconsults_row = fetch_one_db("SELECT COUNT(*) as count FROM encounters WHERE status = 'TELECONSULT_QUEUED'")
-    red_flags_row = fetch_one_db("SELECT COUNT(*) as count FROM clinical_intakes WHERE red_flags_detected = 1 OR red_flags_detected = true")
-    high_risk_row = fetch_one_db("SELECT COUNT(*) as count FROM high_risk_registry")
-    
-    pending_ref_row = fetch_one_db("SELECT COUNT(*) as count FROM referrals WHERE status = 'PENDING'")
-    transit_ref_row = fetch_one_db("SELECT COUNT(*) as count FROM referrals WHERE status = 'IN_TRANSIT'")
-    arrived_ref_row = fetch_one_db("SELECT COUNT(*) as count FROM referrals WHERE status = 'ARRIVED'")
-    completed_ref_row = fetch_one_db("SELECT COUNT(*) as count FROM referrals WHERE status = 'COMPLETED'")
-
-    return {
-        "total_encounters": int(total_encounters_row.get("count") if total_encounters_row else 0),
-        "kiosk_intakes": int(kiosk_intakes_row.get("count") if kiosk_intakes_row else 0),
-        "teleconsults": int(teleconsults_row.get("count") if teleconsults_row else 0),
-        "red_flags_count": int(red_flags_row.get("count") if red_flags_row else 0),
-        "high_risk_tracked": int(high_risk_row.get("count") if high_risk_row else 0),
-        "referrals": {
-            "pending": int(pending_ref_row.get("count") if pending_ref_row else 0),
-            "in_transit": int(transit_ref_row.get("count") if transit_ref_row else 0),
-            "arrived": int(arrived_ref_row.get("count") if arrived_ref_row else 0),
-            "completed": int(completed_ref_row.get("count") if completed_ref_row else 0),
-            "total": int((pending_ref_row.get("count") or 0) + (transit_ref_row.get("count") or 0) + (arrived_ref_row.get("count") or 0) + (completed_ref_row.get("count") or 0))
-        }
-    }

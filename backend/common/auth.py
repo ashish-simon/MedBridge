@@ -22,7 +22,7 @@ router = APIRouter()
 class RegisterRequest(BaseModel):
     username: str
     password: str
-    role: str  # 'patient', 'asha', 'doctor', 'admin'
+    role: str  # 'patient', 'asha', 'doctor'
     full_name: Optional[str] = ""
     abha_id: Optional[str] = ""
 
@@ -30,7 +30,7 @@ class RegisterRequest(BaseModel):
 class LoginRequest(BaseModel):
     username: str
     password: str
-    role: str  # 'patient', 'asha', 'doctor', 'admin'
+    role: str  # 'patient', 'asha', 'doctor'
 
 
 def hash_password(password: str) -> str:
@@ -51,7 +51,7 @@ def register_user(req: RegisterRequest):
         raise HTTPException(status_code=400, detail="Username and password are required.")
     
     role = req.role.lower().strip()
-    valid_roles = ["patient", "asha", "doctor", "admin"]
+    valid_roles = ["patient", "asha", "doctor"]
     if role not in valid_roles:
         raise HTTPException(status_code=400, detail=f"Role must be one of: {', '.join(valid_roles)}.")
 
@@ -60,7 +60,7 @@ def register_user(req: RegisterRequest):
         raise HTTPException(status_code=400, detail="Username is already registered. Please choose another username or log in.")
 
     # Generate user_id & patient_id prefix
-    prefix_map = {"patient": "pat", "asha": "asha", "doctor": "doc", "admin": "adm"}
+    prefix_map = {"patient": "pat", "asha": "asha", "doctor": "doc"}
     user_id = f"{prefix_map.get(role, 'usr')}-{uuid.uuid4().hex[:8]}"
     pwd_hash = hash_password(req.password.strip())
     full_name = req.full_name.strip() or req.username.strip()

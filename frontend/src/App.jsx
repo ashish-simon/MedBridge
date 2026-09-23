@@ -4,7 +4,6 @@ import AuthPage from './components/AuthPage';
 import PatientKioskView from './components/PatientKioskView';
 import AshaFrontlineView from './components/AshaFrontlineView';
 import ModuleCPhysicianView from './components/ModuleCPhysicianView';
-import AdminDashboardView from './components/AdminDashboardView';
 
 export default function App() {
   const [currentUser, setCurrentUser] = useState(null); // { user_id, username, role, full_name, patient_id }
@@ -68,10 +67,6 @@ export default function App() {
 
         {currentUser.role === 'doctor' && (
           <ModuleCPhysicianView patientId={patientId} currentUser={currentUser} />
-        )}
-
-        {currentUser.role === 'admin' && (
-          <AdminDashboardView />
         )}
 
         {currentUser.role === 'patient' && (
