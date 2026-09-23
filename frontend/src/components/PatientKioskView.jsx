@@ -20,6 +20,20 @@ export default function PatientKioskView({ patientId, language, onLanguageChange
   const [redFlagAlert, setRedFlagAlert] = useState(null); // { detected: bool, reason: str }
   const [encounterSummary, setEncounterSummary] = useState(null);
   const [doctorPresentAtFacility, setDoctorPresentAtFacility] = useState(false);
+  const [patientReferralToken, setPatientReferralToken] = useState(null);
+
+  useEffect(() => {
+    if (patientId) {
+      fetch(`/api/v1/referrals/list?patient_id=${patientId}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data.referrals && data.referrals.length > 0) {
+            setPatientReferralToken(data.referrals[0]);
+          }
+        })
+        .catch(() => {});
+    }
+  }, [patientId, currentStep]);
 
   // Audio Control State for Case Intake
   const [audioPlaying, setAudioPlaying] = useState(false);
@@ -683,6 +697,26 @@ export default function PatientKioskView({ patientId, language, onLanguageChange
 
               <div style={{ fontSize: '14px', color: '#14532d', lineHeight: 1.5, fontWeight: 600 }}>
                 📌 <strong>What to do next:</strong> Please proceed to <strong>OPD Room 102</strong> waiting lounge. Your complete AI clinical summary and prior medical documents are already available on Dr. Sharma's physician screen.
+              </div>
+            </div>
+          )}
+
+          {/* Generated Digital Referral Token Banner for Patient Login */}
+          {patientReferralToken && (
+            <div style={{
+              background: '#f0fdf4',
+              border: '2px solid #86efac',
+              borderRadius: '12px',
+              padding: '14px 18px',
+              maxWidth: '680px',
+              margin: '0 auto 20px auto',
+              color: '#14532d',
+              fontSize: '13px',
+              fontWeight: 800
+            }}>
+              🏥 DIGITAL REFERRAL TOKEN GENERATED: <span style={{ color: '#166534', background: '#ffffff', padding: '4px 8px', borderRadius: '6px', border: '1px solid #86efac' }}>{patientReferralToken.id}</span>
+              <div style={{ fontSize: '12px', color: '#15803d', fontWeight: 600, marginTop: '4px' }}>
+                Destination: {patientReferralToken.destination_facility_id} | Status: {patientReferralToken.status}
               </div>
             </div>
           )}
