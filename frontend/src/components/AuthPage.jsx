@@ -115,7 +115,7 @@ export default function AuthPage({ onLoginSuccess, currentLanguage, onLanguageCh
             <Stethoscope size={32} color="#ffffff" />
           </div>
           <h2 style={{ fontSize: '22px', fontWeight: 800, margin: '0 0 4px 0' }}>
-            MediKiosk Rural Platform
+            MediBridge Rural Platform
           </h2>
           <p style={{ fontSize: '13px', margin: 0, opacity: 0.9 }}>
             Multi-Tier Integrated Public Healthcare Portal

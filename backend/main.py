@@ -26,7 +26,7 @@ from module_c.router import router as module_c_router
 from module_d.router import router as module_d_router
 from v1.router import router as v1_router
 
-app = FastAPI(title="MediKiosk API", version="0.1.0")
+app = FastAPI(title="MediBridge API", version="0.1.0")
 
 # Allows the React frontend (running on a different port during development)
 # to call this backend. Fine to leave wide open for the hackathon; would be
@@ -41,7 +41,7 @@ app.add_middleware(
 
 @app.get("/")
 def health_check():
-    return {"status": "MediKiosk backend running"}
+    return {"status": "MediBridge backend running"}
 
 
 @app.post("/api/session/start")

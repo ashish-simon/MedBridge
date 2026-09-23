@@ -1,50 +1,78 @@
 # MediBridge
 
-> An intelligent, bilingual patient intake kiosk and physician dashboard designed for high-volume outpatient hospital departments (OPDs). Built for the Ministry of Ayush and the All India Institute of Ayurveda (AIIA).
+> **Multi-Tier Rural Healthcare Continuum Platform**  
+> An integrated, AI-powered digital healthcare platform bridging rural patients, frontline community health workers (ASHAs), remote specialist physicians, and tertiary referral hospitals into a synchronized care continuum. Built for the Ministry of Ayush / AIIA Rural Public Healthcare Initiative.
 
 ---
 
 ## 📌 Overview
 
-MediKiosk streamlines hospital OPD queues by capturing detailed patient clinical histories and digitizing past medical records before the patient enters the consultation room.
+**MediBridge** transforms fragmented, paper-based rural healthcare into an end-to-end digital continuum. Designed specifically for low-resource Primary Health Centers (PHCs) and Sub-Centers, the platform features:
 
-Patients interact with the kiosk using voice or touch in **Hindi, Telugu, or English**. The system asks relevant clinical questions, scans uploaded prescriptions or lab reports, and synthesizes everything into a structured summary for the attending doctor.
+- **Illiteracy & Language Inclusivity**: Spoken audio prompts and touch-friendly visual controls in **English, Hindi, and Telugu** powered by MeitY Bhashini AI.
+- **Emergency Red-Flag Triage**: Instant detection of acute symptoms (e.g., severe chest pain, dyspnea, stroke indicators) that immediately prioritizes critical patients.
+- **Specialist Teleconsultation & Coding**: Auto-generates structured clinical summaries for urban doctors, complete with **SNOMED-CT**, **ICD-11**, **LOINC**, and **NAMASTE AYUSH** codes, with one-click Google Meet video links.
+- **Inter-Facility Digital Referral Pass**: Generates trackable referral tokens (`REF-XXXXXX`) bundling patient history, vitals, and target hospital queues.
+- **ASHA Frontline Worker App**: Offline-first mobile interface equipping community health workers with doctor-assigned high-risk checklists, red-flag emergency alarms, and low-network batch sync capabilities.
+- **100% Real Data & Persistence**: Standardized Patient IDs (`PAT-XXXXXX`) across PostgreSQL and SQLite databases with zero mock data.
 
 ---
 
-## ✨ Features & Modules
+## ✨ System Architecture & Key Modules
 
-### 1. Patient Consent & Privacy (Module D)
-- **Clear Data Governance**: Explains data collection and privacy terms clearly to patients.
-- **Audio Autoplay**: Spoken consent audio automatically plays via Bhashini TTS when loaded.
-- **Support for Minors**: Optional guardian confirmation for minor patients.
+```
+┌────────────────────────────────────────────────────────────────────────────────────────┐
+│                        MEDIBRIDGE MULTI-TIER CONTINUUM PLATFORM                        │
+└────────────────────────────────────────────────────────────────────────────────────────┘
+         │                                 │                                 │
+         ▼                                 ▼                                 ▼
+┌─────────────────┐               ┌─────────────────┐               ┌─────────────────┐
+│  PATIENT KIOSK  │               │  ASHA WORKER    │               │ PHYSICIAN PORTAL│
+│  (PHC / Triage) │               │  (Home Visits)  │               │ (Remote / OPD)  │
+└────────┬────────┘               └────────┬────────┘               └────────┬────────┘
+         │                                 │                                 │
+         └─────────────────────────────────┼─────────────────────────────────┘
+                                           │
+                                           ▼
+                       ┌───────────────────────────────────────┐
+                       │      FASTAPI CENTRAL API GATEWAY      │
+                       │ Red-Flag Engine | Summary Synthesizer │
+                       └───────────────────┬───────────────────┘
+                                           │
+                                           ▼
+                       ┌───────────────────────────────────────┐
+                       │     POSTGRESQL / SQLITE DATABASE      │
+                       │ Unified Patient ID (PAT-XXXXXX) State │
+                       └───────────────────────────────────────┘
+```
 
-### 2. Conversational Clinical Intake (Module A)
-- **Voice & Touch Experience**: Natural speech interaction powered by Bhashini ASR and TTS.
-- **SOCRATES & AYUSH Framework**: Gathers comprehensive details about symptoms (onset, duration, severity, character, aggravating/relieving factors) and Ayurvedic parameters.
-- **Medical & Lifestyle History**: Automatically asks about past medical/surgical history, current medications, drug allergies, family history, and lifestyle habits.
-- **Safety Screening**: Automatic red-flag detection for immediate triage if severe symptoms (such as cardiac or stroke indicators) are mentioned.
+### 1. Patient Kiosk & Conversational AI Intake
+- **4-Step Intake Wizard**: Guided workflow (**1. ABHA & Consent $\rightarrow$ 2. AI Voice Interview $\rightarrow$ 3. Medical Document Scanner $\rightarrow$ 4. Live Waiting Room**).
+- **Audio Autoplay & Guidance**: Speech output via MeitY Bhashini TTS ensures illiterate and semi-literate patients complete intake independently.
+- **Controlled Sequential Navigation**: Prevents unearned step jumps until prior clinical intake stages are completed.
 
-### 3. Medical Document Digitization (Module B)
-- **Multi-File Upload**: Patients can upload multiple prescriptions, lab test reports, or discharge summaries at once.
-- **AI-Powered OCR**: Uses PaddleOCR and Gemini Vision to read printed or handwritten medical records.
-- **Timeline & Abnormal Flags**: Organizes records chronologically and highlights out-of-range lab results as **ABNORMAL**.
+### 2. Emergency Red-Flag Triage Engine
+- **Instant Symptom Parsing**: Evaluates incoming symptoms in real time.
+- **Priority Escalation**: Acute indicators (chest pain, stroke, severe bleeding) trigger **🚨 Emergency Red-Flag Triage Alerts**, escalating patients to top priority across physician and ASHA dashboards.
 
-### 4. Physician Dashboard & Summary (Module C)
-- **Standard Clinical Summary**: Combines spoken patient history and scanned records into a structured clinical note:
-  - Chief Complaint
-  - History of Present Illness (HPI)
-  - Past Medical & Surgical History
-  - Drug Allergies & Current Medications
-  - Family & Personal Lifestyle History
-  - Review of Systems (ROS)
-  - Prior Investigations & Lab Summary
-- **Interoperability Coding**: Computes relevant SNOMED-CT, ICD-11, LOINC, and NAMASTE codes.
-- **OPD Queue & Editing**: Doctors can search patients, review notes, listen to spoken audio summaries, and make inline edits or sign-offs.
+### 3. Medical Document Digitization & OCR Scanner (Module B)
+- **Paper-to-Digital Conversion**: Scans physical handwritten prescriptions, lab reports, and discharge summaries.
+- **Abnormal Value Flagging**: Automatically parses test metrics and highlights out-of-range lab results as **ABNORMAL**.
 
-### 5. Role-Based Login & Kiosk Reset
-- **Separate Portals**: Password-protected login and registration for Patients and Doctors.
-- **Kiosk Reset**: After completing intake, patients can review their submitted info, and the kiosk can be reset for the next patient.
+### 4. Specialist Physician & OPD Portal (Module C)
+- **Priority Queue Sorting**: Orders patients automatically: `🚨 Red-Flag Emergency` $\rightarrow$ `⚠️ High Risk` $\rightarrow$ `Standard Intake`.
+- **AI Clinical Summary Synthesizer**: Compiles conversational history and OCR records into standardized clinical summaries with SNOMED-CT, ICD-11, and NAMASTE codes.
+- **Google Meet Teleconsultation**: Generates dynamic one-click video consultation links connecting doctors directly to PHC patient booths.
+- **Digital Referral Generator**: Issues inter-facility digital referral tokens (`REF-XXXXXX`) for tertiary hospital care.
+- **ASHA High-Risk Task Assignment**: Assigns post-consultation home visit follow-up tasks directly to the local ASHA worker's daily checklist.
+
+### 5. ASHA Frontline Worker Mobile App (Offline-First)
+- **High-Risk Home Visit Checklist**: Displays daily follow-up tasks assigned by doctors.
+- **Low-Network Batch Sync**: Saves field visit records locally in low-connectivity areas and syncs to central DB via `POST /api/v1/sync/batch` when online.
+- **Red-Flag Emergency Alarm Banner**: Displays real-time alarms for emergency patients in their catchment area with a smooth one-click fade-out dismissal.
+
+### 6. Live Patient Waiting Room & Referral Pass
+- **Dynamic Waiting Room Card**: Updates in real time based on remote doctor actions, presenting video consultation buttons or blue/green in-person **Referral Pass Cards**.
 
 ---
 
@@ -54,22 +82,43 @@ Patients interact with the kiosk using voice or touch in **Hindi, Telugu, or Eng
 - Python 3.10+
 - Node.js 18+
 
-### 1. Backend (FastAPI)
+### 1. Backend Setup (FastAPI)
 ```bash
 cd backend
 pip install -r requirements.txt
-cp .env.example .env   # Add your Gemini & Bhashini API keys in .env
+
+# (Optional) Clean Database Reset
+python reset_database.py
+
+# Run FastAPI Server on Port 8000
 uvicorn main:app --reload --port 8000
 ```
-API Documentation: `http://localhost:8000/docs`
+- API Explorer & Documentation: `http://localhost:8000/docs`
 
-### 2. Frontend (React + Vite)
+### 2. Frontend Setup (React + Vite)
 ```bash
 cd frontend
 npm install
 npm run dev
 ```
-Open in browser: `http://localhost:5173`
+- Open Application in Browser: `http://localhost:3000` or `http://localhost:5173`
+
+---
+
+## 🧪 Verification & Automated Testing
+
+Run the end-to-end integration script to verify DB reset, patient registration (`PAT-XXXXXX`), red-flag triage, physician queue correlation, referral creation, and ASHA task sync:
+
+```bash
+cd backend
+python test_real_data_flow.py
+```
+
+To verify the production frontend build:
+```bash
+cd frontend
+npm run build
+```
 
 ---
 
@@ -77,21 +126,26 @@ Open in browser: `http://localhost:5173`
 
 ```
 ├── backend/
-│   ├── main.py                  # FastAPI entrypoint
+│   ├── main.py                  # FastAPI entrypoint (MediBridge API)
+│   ├── reset_database.py        # Database clean reset utility
+│   ├── test_real_data_flow.py   # Real data correlation integration test
 │   ├── common/                  # Database (SQLite/PostgreSQL), Auth, Session management
-│   ├── module_a/                # Conversational AI & Bhashini speech integration
-│   ├── module_b/                # Document OCR & entity extraction
-│   ├── module_c/                # Clinical summary generator & medical coding
-│   └── module_d/                # Patient consent & privacy
+│   ├── module_a/                # Conversational AI & Bhashini speech processing
+│   ├── module_b/                # Medical document OCR & vision scanner
+│   ├── module_c/                # Structured clinical summary generator & medical coding
+│   ├── module_d/                # ABDM ABHA consent & privacy management
+│   └── v1/                      # API v1 router (Intake, Referrals, High-Risk Registry, Sync)
 ├── frontend/
 │   ├── src/
-│   │   ├── App.jsx              # Application router
+│   │   ├── App.jsx              # Application router & multi-role state
+│   │   ├── utils/               # Application-wide audio manager (audioManager.js)
 │   │   ├── components/
-│   │   │   ├── AuthPage.jsx            # Patient & Doctor password login/registration
-│   │   │   ├── Header.jsx              # Kiosk header with language selection
-│   │   │   ├── ModuleDConsent.jsx      # Privacy & data consent
-│   │   │   ├── ModuleAIntake.jsx       # Voice & touch intake interview
+│   │   │   ├── AuthPage.jsx            # Multi-tier role authentication (Patient/ASHA/Doctor/Admin)
+│   │   │   ├── Header.jsx              # Kiosk header & language selector (EN/HI/TE)
+│   │   │   ├── PatientKioskView.jsx    # 4-step Patient Kiosk & Live Waiting Room
+│   │   │   ├── AshaFrontlineView.jsx   # ASHA Worker App & Low-Network Batch Sync
+│   │   │   ├── ModuleCPhysicianView.jsx# Specialist Physician OPD Dashboard & Referral Manager
+│   │   │   ├── ModuleDConsent.jsx      # Privacy & ABHA consent management
 │   │   │   ├── ModuleBDocuments.jsx    # Document upload & OCR scanner
-│   │   │   ├── ModuleCPhysicianView.jsx# Physician OPD dashboard
-│   │   │   └── KioskComplete.jsx       # Patient completion screen
+│   │   │   └── AdminDashboardView.jsx  # System analytics & database administration
 ```

@@ -23,7 +23,7 @@ export default function Header({ currentUser, language, onLanguageChange, onLogo
           <Stethoscope size={24} color="#ffffff" />
         </div>
         <div>
-          <div className="brand-title">MediKiosk Platform</div>
+          <div className="brand-title">MediBridge Platform</div>
           <div className="brand-subtitle">Ministry of Ayush / AIIA Rural Healthcare Continuum</div>
         </div>
       </div>
