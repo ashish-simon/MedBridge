@@ -266,6 +266,22 @@ export default function PatientKioskView({ patientId, language, onLanguageChange
     }
   };
 
+  const handleStartNextPatientIntake = async () => {
+    stopQuestionAudio();
+    setMessages([]);
+    setInputText('');
+    setSuggestedOptions([]);
+    setExtractedState({});
+    setRedFlagAlert(null);
+    setEncounterSummary(null);
+    setCurrentStep(1);
+    if (onCompleteKiosk) {
+      await onCompleteKiosk();
+    }
+  };
+
+  const isTeleconsultQueue = encounterSummary?.encounter_status === 'TELECONSULT_QUEUED' || redFlagAlert?.detected || !doctorPresentAtFacility;
+
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
       {/* Kiosk Step Progress Bar */}
@@ -561,70 +577,31 @@ export default function PatientKioskView({ patientId, language, onLanguageChange
               width: '72px',
               height: '72px',
               borderRadius: '50%',
-              background: encounterSummary?.encounter_status === 'TELECONSULT_QUEUED' ? '#fef3c7' : '#dcfce7',
-              color: encounterSummary?.encounter_status === 'TELECONSULT_QUEUED' ? '#b45309' : '#166534',
+              background: isTeleconsultQueue ? '#fef3c7' : '#dcfce7',
+              color: isTeleconsultQueue ? '#b45309' : '#166534',
               display: 'inline-flex',
               alignItems: 'center',
               justifyContent: 'center',
               marginBottom: '12px'
             }}>
-              {encounterSummary?.encounter_status === 'TELECONSULT_QUEUED' ? <PhoneCall size={36} /> : <Building size={36} />}
+              {isTeleconsultQueue ? <PhoneCall size={36} /> : <Building size={36} />}
             </div>
 
             <h2 style={{ fontSize: '24px', fontWeight: 800, color: 'var(--text-dark)', marginBottom: '6px' }}>
-              {encounterSummary?.encounter_status === 'TELECONSULT_QUEUED' 
+              {isTeleconsultQueue 
                 ? "📞 Routed to Assisted Specialist Teleconsultation" 
                 : "🏢 Routed to On-Site OPD Physician Consultation"}
             </h2>
 
             <p style={{ fontSize: '15px', color: 'var(--text-muted)', maxWidth: '600px', margin: '0 auto' }}>
-              Your intake history, vital signs, and digitized medical documents have been saved and assigned to your consultation queue.
+              {isTeleconsultQueue 
+                ? "Due to emergency triage priority or remote specialist requirements, you have been assigned to the Teleconsultation Queue."
+                : "Your intake history, vital signs, and digitized medical documents have been saved and assigned to your OPD consultation queue."}
             </p>
           </div>
 
           {/* CLEAR DESTINATION ROUTING CARD */}
-          {encounterSummary?.encounter_status === 'LOCAL_DOCTOR_QUEUED' ? (
-            /* ROUTING PATH A: ON-SITE OPD DOCTOR PRESENT */
-            <div style={{
-              background: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)',
-              border: '2px solid #86efac',
-              borderRadius: '16px',
-              padding: '24px',
-              maxWidth: '680px',
-              margin: '0 auto 28px auto'
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px', borderBottom: '1px solid #bbf7d0', paddingBottom: '12px' }}>
-                <Building size={24} color="#166534" />
-                <div>
-                  <h3 style={{ fontSize: '18px', fontWeight: 800, color: '#14532d', margin: 0 }}>
-                    DESTINATION: OPD ROOM #102 (General OPD Clinic)
-                  </h3>
-                  <div style={{ fontSize: '12px', color: '#166534', fontWeight: 600 }}>
-                    Attending Physician: Dr. Rajesh Sharma (Senior Medical Officer)
-                  </div>
-                </div>
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', marginBottom: '16px' }}>
-                <div style={{ background: '#ffffff', padding: '12px', borderRadius: '10px', textAlign: 'center' }}>
-                  <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 700 }}>OPD TOKEN</div>
-                  <div style={{ fontSize: '22px', fontWeight: 800, color: '#15803d' }}>#OPD-104</div>
-                </div>
-                <div style={{ background: '#ffffff', padding: '12px', borderRadius: '10px', textAlign: 'center' }}>
-                  <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 700 }}>ESTIMATED WAIT</div>
-                  <div style={{ fontSize: '22px', fontWeight: 800, color: '#15803d' }}>~10 Mins</div>
-                </div>
-                <div style={{ background: '#ffffff', padding: '12px', borderRadius: '10px', textAlign: 'center' }}>
-                  <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 700 }}>CLINICAL SUMMARY</div>
-                  <div style={{ fontSize: '14px', fontWeight: 800, color: '#15803d', marginTop: '4px' }}>Transmitted</div>
-                </div>
-              </div>
-
-              <div style={{ fontSize: '14px', color: '#14532d', lineHeight: 1.5, fontWeight: 600 }}>
-                📌 <strong>What to do next:</strong> Please proceed to <strong>OPD Room 102</strong> waiting lounge. Your complete AI clinical summary and prior medical documents are already available on Dr. Sharma's physician screen.
-              </div>
-            </div>
-          ) : (
+          {isTeleconsultQueue ? (
             /* ROUTING PATH B: ASSISTED TELECONSULTATION (NO DOCTOR OR RED FLAG) */
             <div style={{
               background: 'linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%)',
@@ -667,9 +644,50 @@ export default function PatientKioskView({ patientId, language, onLanguageChange
                 📌 <strong>What to do next:</strong> Please step into <strong>Kiosk Tele-Booth #1</strong>. The frontline health worker (ASHA) will assist you with the live audio/video specialist consultation.
               </div>
             </div>
+          ) : (
+            /* ROUTING PATH A: ON-SITE OPD DOCTOR PRESENT */
+            <div style={{
+              background: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)',
+              border: '2px solid #86efac',
+              borderRadius: '16px',
+              padding: '24px',
+              maxWidth: '680px',
+              margin: '0 auto 28px auto'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px', borderBottom: '1px solid #bbf7d0', paddingBottom: '12px' }}>
+                <Building size={24} color="#166534" />
+                <div>
+                  <h3 style={{ fontSize: '18px', fontWeight: 800, color: '#14532d', margin: 0 }}>
+                    DESTINATION: OPD ROOM #102 (General OPD Clinic)
+                  </h3>
+                  <div style={{ fontSize: '12px', color: '#166534', fontWeight: 600 }}>
+                    Attending Physician: Dr. Rajesh Sharma (Senior Medical Officer)
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', marginBottom: '16px' }}>
+                <div style={{ background: '#ffffff', padding: '12px', borderRadius: '10px', textAlign: 'center' }}>
+                  <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 700 }}>OPD TOKEN</div>
+                  <div style={{ fontSize: '22px', fontWeight: 800, color: '#15803d' }}>#OPD-104</div>
+                </div>
+                <div style={{ background: '#ffffff', padding: '12px', borderRadius: '10px', textAlign: 'center' }}>
+                  <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 700 }}>ESTIMATED WAIT</div>
+                  <div style={{ fontSize: '22px', fontWeight: 800, color: '#15803d' }}>~10 Mins</div>
+                </div>
+                <div style={{ background: '#ffffff', padding: '12px', borderRadius: '10px', textAlign: 'center' }}>
+                  <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 700 }}>CLINICAL SUMMARY</div>
+                  <div style={{ fontSize: '14px', fontWeight: 800, color: '#15803d', marginTop: '4px' }}>Transmitted</div>
+                </div>
+              </div>
+
+              <div style={{ fontSize: '14px', color: '#14532d', lineHeight: 1.5, fontWeight: 600 }}>
+                📌 <strong>What to do next:</strong> Please proceed to <strong>OPD Room 102</strong> waiting lounge. Your complete AI clinical summary and prior medical documents are already available on Dr. Sharma's physician screen.
+              </div>
+            </div>
           )}
 
-          {/* Patient Details Persistence Summary */}
+          {/* Clean Patient Details Status Summary */}
           <div style={{
             background: 'var(--bg-slate)',
             padding: '16px 20px',
@@ -678,30 +696,26 @@ export default function PatientKioskView({ patientId, language, onLanguageChange
             margin: '0 auto 28px auto',
             border: '1px solid var(--border-color)',
             display: 'grid',
-            gridTemplateColumns: 'repeat(3, 1fr)',
-            gap: '12px',
+            gridTemplateColumns: '1fr 1fr',
+            gap: '16px',
             fontSize: '13px'
           }}>
             <div>
-              <span style={{ color: 'var(--text-muted)', display: 'block' }}>Patient Identifier:</span>
-              <strong style={{ color: 'var(--text-dark)' }}>{patientId}</strong>
+              <span style={{ color: 'var(--text-muted)', display: 'block', fontWeight: 600 }}>Patient Identifier:</span>
+              <strong style={{ color: 'var(--text-dark)', fontSize: '14px' }}>{patientId}</strong>
             </div>
             <div>
-              <span style={{ color: 'var(--text-muted)', display: 'block' }}>Red-Flag Triage:</span>
-              <strong style={{ color: encounterSummary?.red_flags_detected ? '#dc2626' : '#166534' }}>
-                {encounterSummary?.red_flags_detected ? 'FLAGGED HIGH RISK' : 'NO EMERGENCY RED FLAGS'}
+              <span style={{ color: 'var(--text-muted)', display: 'block', fontWeight: 600 }}>Registration Triage Status:</span>
+              <strong style={{ color: encounterSummary?.red_flags_detected ? '#dc2626' : '#166534', fontSize: '14px' }}>
+                {encounterSummary?.red_flags_detected ? '🚨 Emergency Red-Flag Priority' : '✅ Registered & Assigned to Queue'}
               </strong>
-            </div>
-            <div>
-              <span style={{ color: 'var(--text-muted)', display: 'block' }}>Database Persistence:</span>
-              <strong style={{ color: 'var(--primary)' }}>Saved to SQL DB</strong>
             </div>
           </div>
 
           <button
-            onClick={onCompleteKiosk}
+            onClick={handleStartNextPatientIntake}
             className="touch-btn primary"
-            style={{ margin: '0 auto', padding: '14px 32px' }}
+            style={{ margin: '0 auto', padding: '14px 32px', fontSize: '16px', fontWeight: 700 }}
           >
             Start Next Patient Intake
           </button>
