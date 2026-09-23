@@ -58,15 +58,31 @@ export default function ModuleCPhysicianView({ patientId, currentUser }) {
     }
   }, [selectedPatientId]);
 
+  // Sort Queue by Priority: Red-Flag Emergency -> High-Risk -> Standard
+  const getSortedPatientQueue = (list) => {
+    return [...list].sort((a, b) => {
+      const aRed = a.red_flag_detected ? 1 : 0;
+      const bRed = b.red_flag_detected ? 1 : 0;
+      if (aRed !== bRed) return bRed - aRed;
+
+      const aHigh = a.is_high_risk ? 1 : 0;
+      const bHigh = b.is_high_risk ? 1 : 0;
+      if (aHigh !== bHigh) return bHigh - aHigh;
+
+      return (b.patient_id || '').localeCompare(a.patient_id || '');
+    });
+  };
+
   const fetchPatientQueue = async () => {
     try {
       const res = await fetch('/api/auth/patients');
       if (res.ok) {
         const data = await res.json();
         const list = data.patients || [];
-        setPatientQueue(list);
-        if (!selectedPatientId && list.length > 0) {
-          setSelectedPatientId(list[0].patient_id);
+        const sorted = getSortedPatientQueue(list);
+        setPatientQueue(sorted);
+        if (!selectedPatientId && sorted.length > 0) {
+          setSelectedPatientId(sorted[0].patient_id);
         }
       }
     } catch (e) {
@@ -74,25 +90,51 @@ export default function ModuleCPhysicianView({ patientId, currentUser }) {
     }
   };
 
+  const getPatientOptionLabel = (p, index) => {
+    const isRed = p.red_flag_detected;
+    const isHigh = p.is_high_risk;
+    const prefix = isRed ? '🚨 [RED-FLAG]' : isHigh ? '⚠️ [HIGH RISK]' : `[#${index + 1}]`;
+    const name = p.full_name || p.name || (p.patient_id?.startsWith('pat-') ? `Patient #${p.patient_id.slice(-6)}` : p.patient_id);
+    const age = p.age || 45;
+    const gender = p.gender || 'Male';
+    const complaint = p.chief_complaint || 'Standard Intake Assessment';
+
+    return `${prefix} ${name} | ${age}Yrs ${gender} | ID: ${p.patient_id} (${complaint})`;
+  };
+
+  const handleNextPatient = () => {
+    const sorted = getSortedPatientQueue(patientQueue);
+    if (sorted.length === 0) return;
+    const currentIndex = sorted.findIndex(p => p.patient_id === selectedPatientId);
+    const nextIndex = (currentIndex + 1) % sorted.length;
+    const nextPatient = sorted[nextIndex];
+    setSelectedPatientId(nextPatient.patient_id);
+    setSavedSuccessMsg(`⏭️ Now viewing Next Patient in Priority Queue: ${nextPatient.full_name || nextPatient.name || nextPatient.patient_id}`);
+    setTimeout(() => setSavedSuccessMsg(''), 3000);
+  };
+
   const updateSelectedPatientInfo = (pid) => {
-    const found = patientQueue.find(p => p.patient_id === pid);
+    const sorted = getSortedPatientQueue(patientQueue);
+    const found = sorted.find(p => p.patient_id === pid);
     if (found) {
       setSelectedPatientInfo({
-        name: found.full_name || found.name || pid,
-        age: found.age || 42,
+        name: found.full_name || found.name || (pid.startsWith('pat-') ? `Patient #${pid.slice(-6)}` : pid),
+        age: found.age || 45,
         gender: found.gender || 'Male',
         patient_id: pid,
-        is_high_risk: true,
-        red_flag: found.red_flag_detected || false
+        is_high_risk: found.is_high_risk || false,
+        red_flag: found.red_flag_detected || false,
+        chief_complaint: found.chief_complaint || 'Standard OPD Assessment'
       });
     } else {
       setSelectedPatientInfo({
-        name: pid === 'pat_test_01' ? 'Ramesh Kumar' : pid,
+        name: pid === 'pat_test_01' ? 'Ramesh Kumar' : (pid.startsWith('pat-') ? `Patient #${pid.slice(-6)}` : pid),
         age: 45,
         gender: 'Male',
         patient_id: pid,
         is_high_risk: true,
-        red_flag: pid === 'pat_test_01'
+        red_flag: pid === 'pat_test_01',
+        chief_complaint: 'Severe chest pain & dizziness'
       });
     }
   };
@@ -281,17 +323,29 @@ export default function ModuleCPhysicianView({ patientId, currentUser }) {
             </button>
           </div>
 
+          {/* Priority Queue Sorted Patient Dropdown */}
           <select
             value={selectedPatientId}
             onChange={(e) => setSelectedPatientId(e.target.value)}
-            style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '13px', fontWeight: 700 }}
+            style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '12px', fontWeight: 700, maxWidth: '380px' }}
           >
-            {patientQueue.map((p, i) => (
+            {getSortedPatientQueue(patientQueue).map((p, i) => (
               <option key={i} value={p.patient_id}>
-                {p.patient_id} ({p.chief_complaint || 'Active Patient'})
+                {getPatientOptionLabel(p, i)}
               </option>
             ))}
           </select>
+
+          {/* Next Patient Button */}
+          <button
+            onClick={handleNextPatient}
+            className="touch-btn primary"
+            style={{ padding: '8px 16px', fontSize: '12px', fontWeight: 800, borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '6px', whiteSpace: 'nowrap' }}
+            title="Advance to next patient in queue priority order"
+          >
+            <span>Next Patient</span>
+            <ChevronRight size={16} />
+          </button>
         </div>
       </div>
 
