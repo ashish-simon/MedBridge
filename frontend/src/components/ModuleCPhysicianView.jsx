@@ -5,7 +5,7 @@ import {
 } from 'lucide-react';
 
 export default function ModuleCPhysicianView({ patientId, currentUser }) {
-  const [activeTab, setActiveTab] = useState('queue'); // 'queue', 'teleconsult', 'referrals'
+  const [activeTab, setActiveTab] = useState('teleconsult'); // 'teleconsult', 'referrals'
   const [patientQueue, setPatientQueue] = useState([]);
   const [selectedPatientId, setSelectedPatientId] = useState(patientId || '');
   const [summaryData, setSummaryData] = useState(null);
@@ -147,16 +147,10 @@ export default function ModuleCPhysicianView({ patientId, currentUser }) {
           </h2>
           <div style={{ display: 'flex', background: 'var(--bg-slate)', padding: '4px', borderRadius: '20px', border: '1px solid var(--border-color)' }}>
             <button
-              onClick={() => setActiveTab('queue')}
-              className={`mode-btn ${activeTab === 'queue' ? 'active' : ''}`}
-            >
-              OPD Queue ({patientQueue.length})
-            </button>
-            <button
               onClick={() => setActiveTab('teleconsult')}
               className={`mode-btn ${activeTab === 'teleconsult' ? 'active' : ''}`}
             >
-              <PhoneCall size={14} /> Teleconsult Queue
+              <PhoneCall size={14} /> Teleconsult Queue ({patientQueue.length})
             </button>
             <button
               onClick={() => setActiveTab('referrals')}
