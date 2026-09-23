@@ -1,4 +1,4 @@
-# MediKiosk
+# MediBridge
 
 > An intelligent, bilingual patient intake kiosk and physician dashboard designed for high-volume outpatient hospital departments (OPDs). Built for the Ministry of Ayush and the All India Institute of Ayurveda (AIIA).
 
