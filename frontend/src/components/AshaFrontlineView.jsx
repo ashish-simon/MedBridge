@@ -1,18 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  HeartPulse, Wifi, WifiOff, RefreshCw, Plus, CheckCircle2, 
-  Calendar, AlertCircle, User, FileText, Send, MapPin, Search 
+  HeartPulse, RefreshCw, Plus, CheckCircle2, 
+  Calendar, AlertCircle, User, FileText, Send, Check
 } from 'lucide-react';
 
 export default function AshaFrontlineView({ currentUser }) {
-  const [isOnline, setIsOnline] = useState(true);
   const [tasks, setTasks] = useState([]);
+  const [selectedTask, setSelectedTask] = useState(null);
   const [loading, setLoading] = useState(true);
   const [pendingQueue, setPendingQueue] = useState([]);
   const [syncStatus, setSyncStatus] = useState('');
   
-  // New Visit Form State
-  const [showAddModal, setShowAddModal] = useState(false);
+  // Field Visit Form State
   const [patientIdInput, setPatientIdInput] = useState('');
   const [patientName, setPatientName] = useState('');
   const [conditionTag, setConditionTag] = useState('High-Risk Pregnancy');
@@ -21,7 +20,7 @@ export default function AshaFrontlineView({ currentUser }) {
   const [vitalsBp, setVitalsBp] = useState('120/80');
   const [vitalsHb, setVitalsHb] = useState('11.5');
 
-  // Load offline queue from localStorage
+  // Load offline queue from localStorage & fetch real tasks from DB
   useEffect(() => {
     const saved = localStorage.getItem('asha_offline_queue');
     if (saved) {
@@ -38,76 +37,107 @@ export default function AshaFrontlineView({ currentUser }) {
       const res = await fetch('/api/v1/followups/high-risk');
       if (res.ok) {
         const data = await res.json();
-        setTasks(data.tasks || []);
+        const list = data.tasks || [];
+        setTasks(list);
+        if (list.length > 0) {
+          handleSelectTask(list[0]);
+        }
       }
     } catch (e) {
-      console.log('Using local fallback tasks');
+      console.error('Fetch high risk tasks error:', e);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleToggleOnline = () => {
-    setIsOnline(prev => !prev);
+  // Direct selection correlation when ASHA clicks a patient card from the list
+  const handleSelectTask = (task) => {
+    setSelectedTask(task);
+    setPatientIdInput(task.patient_id || task.id);
+    setPatientName(task.patient_name || task.name || task.patient_id);
+    setConditionTag(task.condition_tag || 'High-Risk Pregnancy');
+    setDueDate(task.follow_up_due_date || new Date().toISOString().split('T')[0]);
+    setVisitNotes(task.notes || '');
+    setVitalsBp(task.bp || '120/80');
+    setVitalsHb(task.hb || '11.5');
+  };
+
+  const handleAddNewVisitMode = () => {
+    setSelectedTask(null);
+    setPatientIdInput(`pat-asha-${Date.now().toString().slice(-4)}`);
+    setPatientName('');
+    setConditionTag('High-Risk Pregnancy');
+    setDueDate(new Date().toISOString().split('T')[0]);
+    setVisitNotes('');
+    setVitalsBp('120/80');
+    setVitalsHb('11.5');
   };
 
   const handleSaveVisitForm = async (e) => {
     e.preventDefault();
     if (!patientName.trim()) return;
 
-    const pid = patientIdInput.trim() || `pat-asha-${Date.now()}`;
+    const pid = patientIdInput.trim() || selectedTask?.patient_id || `pat-asha-${Date.now()}`;
     const mutation = {
       mutation_id: `mut-${Date.now()}`,
-      type: 'visit_note',
+      type: 'high_risk_update',
       patient_id: pid,
       payload: {
-        name: patientName,
+        registry_id: selectedTask?.id,
+        patient_id: pid,
+        name: patientName.trim(),
         condition_tag: conditionTag,
         notes: visitNotes,
         bp: vitalsBp,
         hb: vitalsHb,
+        status: 'COMPLETED',
         follow_up_due_date: dueDate
       },
       client_timestamp: new Date().toISOString()
     };
 
-    if (isOnline) {
-      // Direct online submission
-      try {
-        await fetch('/api/v1/sync/batch', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ worker_id: currentUser?.user_id || 'ASHA-001', mutations: [mutation] })
-        });
-        setSyncStatus('Visit note saved & synced directly to server!');
-        fetchHighRiskTasks();
-      } catch (err) {
-        // Fallback to offline queue
+    try {
+      const res = await fetch('/api/v1/sync/batch', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ worker_id: currentUser?.user_id || 'ASHA-001', mutations: [mutation] })
+      });
+
+      if (res.ok) {
+        setSyncStatus(`Follow-up visit for ${patientName} saved & status updated to COMPLETED!`);
+        // Immediately update status in task list
+        if (selectedTask) {
+          setTasks(prev => prev.map(t => t.id === selectedTask.id ? { ...t, status: 'COMPLETED' } : t));
+          setSelectedTask(prev => prev ? { ...prev, status: 'COMPLETED' } : null);
+        }
+        setTimeout(() => setSyncStatus(''), 4000);
+      } else {
         saveToOfflineQueue(mutation);
       }
-    } else {
-      // Save offline
+    } catch (err) {
       saveToOfflineQueue(mutation);
     }
-
-    setShowAddModal(false);
-    resetForm();
   };
 
   const saveToOfflineQueue = (mutation) => {
     const updated = [...pendingQueue, mutation];
     setPendingQueue(updated);
     localStorage.setItem('asha_offline_queue', JSON.stringify(updated));
-    setSyncStatus(`Offline mode active. Saved to local queue (${updated.length} pending).`);
+    setSyncStatus(`Saved to offline queue (${updated.length} pending items ready to sync).`);
+    if (selectedTask) {
+      setTasks(prev => prev.map(t => t.id === selectedTask.id ? { ...t, status: 'COMPLETED (OFFLINE)' } : t));
+    }
+    setTimeout(() => setSyncStatus(''), 4000);
   };
 
   const handleTriggerSync = async () => {
     if (pendingQueue.length === 0) {
       setSyncStatus('No pending offline items to sync.');
+      setTimeout(() => setSyncStatus(''), 3000);
       return;
     }
 
-    setSyncStatus('Synchronizing batch payload with FastAPI server...');
+    setSyncStatus('Synchronizing offline queue with server...');
     try {
       const res = await fetch('/api/v1/sync/batch', {
         method: 'POST',
@@ -120,86 +150,22 @@ export default function AshaFrontlineView({ currentUser }) {
 
       const data = await res.json();
       if (res.ok) {
-        setSyncStatus(`Successfully synced ${data.synced_count} records! Conflict resolution resolved.`);
+        setSyncStatus(`Successfully synced ${data.synced_count} offline records to central database!`);
         setPendingQueue([]);
         localStorage.removeItem('asha_offline_queue');
         fetchHighRiskTasks();
+        setTimeout(() => setSyncStatus(''), 4000);
       } else {
         throw new Error('Sync failed');
       }
     } catch (err) {
-      setSyncStatus('Sync error. Will retry when connection stabilizes.');
+      setSyncStatus('Sync error. Network unavailable.');
     }
   };
 
-  const resetForm = () => {
-    setPatientIdInput('');
-    setPatientName('');
-    setVisitNotes('');
-  };
-
   return (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '20px' }}>
-      {/* Top Banner: Online / Offline Status Badge */}
-      <div className="card-panel" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px 24px' }}>
-        <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <h2 style={{ fontSize: '20px', fontWeight: 800, color: 'var(--text-dark)', margin: 0 }}>
-              🏡 ASHA Frontline Worker Continuum App
-            </h2>
-            <div style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px',
-              padding: '4px 12px',
-              borderRadius: '20px',
-              fontSize: '12px',
-              fontWeight: 800,
-              background: isOnline ? '#dcfce7' : '#fee2e2',
-              color: isOnline ? '#166534' : '#991b1b'
-            }}>
-              {isOnline ? <Wifi size={14} /> : <WifiOff size={14} />}
-              <span>{isOnline ? 'ONLINE' : 'OFFLINE MODE'}</span>
-            </div>
-          </div>
-          <p style={{ fontSize: '13px', color: 'var(--text-muted)', margin: '4px 0 0 0' }}>
-            Assigned Community Region: Rural Block 04 | Frontline Health Worker ID: {currentUser?.user_id || 'ASHA-001'}
-          </p>
-        </div>
-
-        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-          {/* Offline simulator toggle */}
-          <button
-            onClick={handleToggleOnline}
-            style={{
-              padding: '8px 14px',
-              borderRadius: '20px',
-              border: '1px solid var(--border-color)',
-              background: '#ffffff',
-              fontSize: '12px',
-              fontWeight: 700,
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px'
-            }}
-          >
-            {isOnline ? <WifiOff size={14} /> : <Wifi size={14} />}
-            Simulate {isOnline ? 'Offline' : 'Online'}
-          </button>
-
-          {/* Sync Batch Button */}
-          <button
-            onClick={handleTriggerSync}
-            className="touch-btn primary"
-            style={{ padding: '10px 18px', fontSize: '14px', borderRadius: '20px' }}
-          >
-            <RefreshCw size={16} />
-            <span>Sync Queue ({pendingQueue.length})</span>
-          </button>
-        </div>
-      </div>
-
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '16px' }}>
+      {/* Feedback Banner */}
       {syncStatus && (
         <div style={{
           background: '#f0fdf4',
@@ -208,7 +174,7 @@ export default function AshaFrontlineView({ currentUser }) {
           padding: '12px 16px',
           borderRadius: '10px',
           fontSize: '13px',
-          fontWeight: 600,
+          fontWeight: 700,
           display: 'flex',
           alignItems: 'center',
           gap: '8px'
@@ -218,83 +184,119 @@ export default function AshaFrontlineView({ currentUser }) {
         </div>
       )}
 
-      {/* Main Grid: High-Risk Schedule & New Visit Form */}
+      {/* Main Grid: High-Risk Schedule & Correlated Visit Form */}
       <div className="grid-2" style={{ alignItems: 'start' }}>
-        {/* Left: High Risk Task Schedule */}
+        {/* Left Panel: High Risk Task List */}
         <div className="card-panel">
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '8px' }}>
             <h3 style={{ fontSize: '16px', fontWeight: 800, color: 'var(--text-dark)', margin: 0 }}>
               📋 High-Risk Patient Task List (Home-Visit Schedule)
             </h3>
-            <button
-              onClick={() => setShowAddModal(true)}
-              className="touch-btn ayush"
-              style={{ padding: '8px 14px', fontSize: '13px' }}
-            >
-              <Plus size={16} /> Add Visit
-            </button>
+
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+              <button
+                onClick={handleAddNewVisitMode}
+                className="touch-btn ayush"
+                style={{ padding: '6px 12px', fontSize: '12px' }}
+              >
+                <Plus size={14} /> New Patient Visit
+              </button>
+
+              {/* Sync Queue Option Button */}
+              <button
+                onClick={handleTriggerSync}
+                className="touch-btn primary"
+                style={{ padding: '6px 14px', fontSize: '12px', borderRadius: '20px' }}
+              >
+                <RefreshCw size={14} />
+                <span>Sync Queue ({pendingQueue.length})</span>
+              </button>
+            </div>
           </div>
 
           {loading ? (
-            <div style={{ padding: '20px', textAlign: 'center', color: 'var(--text-muted)' }}>Loading schedule...</div>
+            <div style={{ padding: '20px', textAlign: 'center', color: 'var(--text-muted)' }}>Loading real high-risk schedule...</div>
           ) : tasks.length === 0 ? (
-            <div style={{ padding: '20px', textAlign: 'center', color: 'var(--text-muted)' }}>No pending high-risk visits.</div>
+            <div style={{ padding: '20px', textAlign: 'center', color: 'var(--text-muted)' }}>No pending high-risk visits found in database.</div>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              {tasks.map((task, idx) => (
-                <div 
-                  key={idx}
-                  style={{
-                    padding: '14px',
-                    borderRadius: '10px',
-                    border: '1px solid var(--border-color)',
-                    background: '#ffffff',
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center'
-                  }}
-                >
-                  <div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                      <span style={{ fontWeight: 800, fontSize: '15px' }}>{task.patient_name || task.patient_id}</span>
-                      <span className="badge badge-snomed">{task.condition_tag || 'High Risk'}</span>
-                    </div>
-                    <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-                      Due Date: <strong>{task.follow_up_due_date || 'Today'}</strong> | Assigned: {task.assigned_worker_id || 'ASHA-001'}
-                    </div>
-                  </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              {tasks.map((task, idx) => {
+                const isSelected = selectedTask?.id === task.id || (selectedTask?.patient_id && selectedTask.patient_id === task.patient_id);
+                const isCompleted = task.status === 'COMPLETED' || task.status === 'COMPLETED (OFFLINE)';
 
-                  <span style={{
-                    fontSize: '11px',
-                    fontWeight: 800,
-                    padding: '4px 8px',
-                    borderRadius: '6px',
-                    background: task.status === 'COMPLETED' ? '#dcfce7' : '#fef3c7',
-                    color: task.status === 'COMPLETED' ? '#166534' : '#b45309'
-                  }}>
-                    {task.status || 'PENDING'}
-                  </span>
-                </div>
-              ))}
+                return (
+                  <div 
+                    key={idx}
+                    onClick={() => handleSelectTask(task)}
+                    style={{
+                      padding: '14px 16px',
+                      borderRadius: '12px',
+                      border: isSelected ? '2px solid var(--primary)' : '1px solid var(--border-color)',
+                      background: isSelected ? '#f0f9ff' : '#ffffff',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      cursor: 'pointer',
+                      transition: 'all 0.15s ease'
+                    }}
+                  >
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                        <strong style={{ fontSize: '15px', color: isSelected ? 'var(--primary-dark)' : 'var(--text-dark)' }}>
+                          {task.patient_name || task.patient_id}
+                        </strong>
+                        <span className="badge badge-snomed" style={{ fontSize: '11px' }}>
+                          {task.condition_tag || 'High Risk'}
+                        </span>
+                      </div>
+                      <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                        Due Date: <strong>{task.follow_up_due_date || 'Today'}</strong> | ID: {task.patient_id || task.id}
+                      </div>
+                    </div>
+
+                    <span style={{
+                      fontSize: '11px',
+                      fontWeight: 800,
+                      padding: '4px 10px',
+                      borderRadius: '12px',
+                      background: isCompleted ? '#dcfce7' : '#fef3c7',
+                      color: isCompleted ? '#166534' : '#b45309',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '4px'
+                    }}>
+                      {isCompleted && <Check size={12} />}
+                      {task.status || 'PENDING_VISIT'}
+                    </span>
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>
 
-        {/* Right: Offline Intake & Visit Form */}
+        {/* Right Panel: Directly Correlated Patient Follow-up Form */}
         <div className="card-panel">
-          <h3 style={{ fontSize: '16px', fontWeight: 800, color: 'var(--text-dark)', marginBottom: '16px' }}>
-            📝 Record Field Visit / Offline Intake
-          </h3>
+          <div style={{ marginBottom: '16px', borderBottom: '1px solid var(--border-color)', paddingBottom: '12px' }}>
+            <h3 style={{ fontSize: '16px', fontWeight: 800, color: 'var(--text-dark)', margin: '0 0 4px 0' }}>
+              📝 Record Field Visit / Follow-up Notes
+            </h3>
+            <p style={{ fontSize: '12px', color: 'var(--primary-dark)', fontWeight: 700, margin: 0 }}>
+              {selectedTask 
+                ? `Active Patient Selected: ${selectedTask.patient_name || selectedTask.patient_id} (${selectedTask.patient_id})` 
+                : 'Recording visit for new patient (Click a patient on left to auto-fill)'}
+            </p>
+          </div>
 
           <form onSubmit={handleSaveVisitForm} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             <div>
               <label style={{ fontSize: '12px', fontWeight: 700, color: '#334155' }}>Patient Name:</label>
               <input
                 type="text"
-                placeholder="e.g. Laxmi Devi"
+                placeholder="e.g. Sita Devi"
                 value={patientName}
                 onChange={(e) => setPatientName(e.target.value)}
-                style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1', marginTop: '4px' }}
+                style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', marginTop: '4px', fontSize: '13px' }}
                 required
               />
             </div>
@@ -305,11 +307,11 @@ export default function AshaFrontlineView({ currentUser }) {
                 <select
                   value={conditionTag}
                   onChange={(e) => setConditionTag(e.target.value)}
-                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1', marginTop: '4px' }}
+                  style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', marginTop: '4px', fontSize: '13px' }}
                 >
-                  <option value="High-Risk Pregnancy">High-Risk Pregnancy</option>
-                  <option value="Chronic HTN / Diabetes">Chronic HTN / Diabetes</option>
-                  <option value="Severe Anemia">Severe Anemia</option>
+                  <option value="High-Risk Pregnancy & HTN">High-Risk Pregnancy & HTN</option>
+                  <option value="Severe Anemia (Hb 7.2)">Severe Anemia (Hb 7.2)</option>
+                  <option value="Chronic HTN & Diabetes">Chronic HTN & Diabetes</option>
                   <option value="Elderly Malnutrition">Elderly Malnutrition</option>
                 </select>
               </div>
@@ -320,7 +322,7 @@ export default function AshaFrontlineView({ currentUser }) {
                   type="date"
                   value={dueDate}
                   onChange={(e) => setDueDate(e.target.value)}
-                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1', marginTop: '4px' }}
+                  style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', marginTop: '4px', fontSize: '13px' }}
                 />
               </div>
             </div>
@@ -333,7 +335,7 @@ export default function AshaFrontlineView({ currentUser }) {
                   placeholder="120/80 mmHg"
                   value={vitalsBp}
                   onChange={(e) => setVitalsBp(e.target.value)}
-                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1', marginTop: '4px' }}
+                  style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', marginTop: '4px', fontSize: '13px' }}
                 />
               </div>
 
@@ -344,7 +346,7 @@ export default function AshaFrontlineView({ currentUser }) {
                   placeholder="11.5"
                   value={vitalsHb}
                   onChange={(e) => setVitalsHb(e.target.value)}
-                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1', marginTop: '4px' }}
+                  style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', marginTop: '4px', fontSize: '13px' }}
                 />
               </div>
             </div>
@@ -352,20 +354,20 @@ export default function AshaFrontlineView({ currentUser }) {
             <div>
               <label style={{ fontSize: '12px', fontWeight: 700, color: '#334155' }}>Field Clinical Observations & Notes:</label>
               <textarea
-                rows={3}
+                rows={4}
                 placeholder="Record symptoms, medication compliance, fetal movement or vitals updates..."
                 value={visitNotes}
                 onChange={(e) => setVisitNotes(e.target.value)}
-                style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1', marginTop: '4px' }}
+                style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', marginTop: '4px', fontSize: '13px' }}
               />
             </div>
 
             <button
               type="submit"
               className="touch-btn primary"
-              style={{ marginTop: '8px' }}
+              style={{ marginTop: '8px', padding: '12px', fontSize: '14px', fontWeight: 700 }}
             >
-              <Send size={16} /> Save Visit Record ({isOnline ? 'Online Sync' : 'Offline Storage'})
+              <Send size={16} /> Save Visit Record & Complete Follow-up
             </button>
           </form>
         </div>
